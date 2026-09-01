@@ -1,0 +1,34 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "property-disallowed-list": [
+      "border-radius",
+      "box-shadow"
+    ],
+    "declaration-property-value-disallowed-list": {
+      "/^color$|^background|^border|^fill$|^stroke$/": [
+        "/^#/",
+        "/^rgba?\\(/",
+        "/^hsla?\\(/"
+      ]
+    },
+    "custom-property-pattern": null,
+    "selector-class-pattern": null,
+    "value-keyword-case": null,
+    "no-descending-specificity": null,
+    "import-notation": null,
+    "custom-property-empty-line-before": null,
+    "comment-empty-line-before": null,
+    "color-hex-length": null
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/styles/tokens.css"
+      ],
+      "rules": {
+        "declaration-property-value-disallowed-list": null
+      }
+    }
+  ]
+}

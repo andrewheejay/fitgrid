@@ -16,6 +16,10 @@
   --swatch-edge: #ececec;   /* border on garment image containers */
   --surface: #ffffff;
   --surface-sunken: #fbfbfb; /* left panels, cell hover, keycaps */
+  --surface-raised: #fcfcfc; /* the deck rail's own ground, a shade off white */
+  --surface-selected: #f2f2f2; /* a chip that is on */
+  --surface-veil: rgb(255 255 255 / 92%); /* the header, over content scrolling under it */
+  --scrim: rgb(10 10 10 / 28%); /* behind a modal dialog */
 
   --navy: #053c5e;          /* accent: active underline, selection, hover, focus */
   --teal: #1f7a8c;          /* success: completed steps, confidence, weather dot */

@@ -1,0 +1,21 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Typecheck covers the app and the serverless functions separately, since
+      # they have different lib and module settings. Lint is the token layer's
+      # enforcement: raw colours and border-radius outside tokens.css fail here.
+      - run: npm run check
+      - run: npm run build

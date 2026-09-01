@@ -17,7 +17,7 @@ two product changes to build rather than restyle.
 
 | Area | What is here |
 | :-- | :-- |
-| **Components** | A token layer (`src/styles/tokens.css`) and shared primitives — buttons, chips, spec tables, cards — reused across six screens. `border-radius` is banned outright and stylelint fails the build on it, because the design has no rounded corners and a stray one reads as a mistake. |
+| **Components** | A token layer (`src/styles/tokens.css`) and shared primitives — buttons, chips, spec tables, cards — reused across six screens. `border-radius` and raw colours outside `tokens.css` both fail `npm run lint`, because the design has no rounded corners and one hard-coded hex is how a token system starts dying. |
 | **Animations** | The deck's reshuffle, the rail's selection travel, and the ingest pipeline's per-step progress, all driven from state rather than timers where the state exists. |
 | **API calls** | Live weather from Open-Meteo. Live product-page reads from whichever of five readers a given shop tolerates. |
 | **Database integration** | Postgres behind two serverless functions: a listing cache, a rate-limit window rolled over in SQL, and an ingest log that the daily spend cap is counted off. Schema in `db/schema.sql`. |
@@ -44,7 +44,9 @@ npm install
 npm run dev        # http://localhost:5173
 npm run build      # static bundle in dist/
 npm run typecheck
+npm run lint        # stylelint: no border-radius, no raw colours outside tokens.css
 npm test
+npm run check       # all three, which is what CI runs
 ```
 
 **No environment variables required.** The serverless functions are an

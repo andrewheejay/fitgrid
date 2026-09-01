@@ -1,7 +1,7 @@
 .rail {
   padding: 16px 16px 18px;
   border: var(--hairline);
-  background: #fcfcfc;
+  background: var(--surface-raised);
 }
 
 .railActive {

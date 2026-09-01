@@ -7,7 +7,7 @@
 }
 
 .dialog::backdrop {
-  background: rgba(10, 10, 10, 0.28);
+  background: var(--scrim);
 }
 
 .label {

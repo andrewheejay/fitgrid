@@ -17,7 +17,7 @@
 }
 
 .selected {
-  background: #f2f2f2;
+  background: var(--surface-selected);
   border-color: var(--ink);
   color: var(--ink);
 }
