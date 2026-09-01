@@ -56,6 +56,12 @@ function connect(): Sql | null {
   return pool;
 }
 
+/**
+ * `sql.unsafe` names the fact that the query text is ours rather than the
+ * driver's tagged template — it is not a raw string with values in it. Every
+ * value below still travels as a bound parameter, and the text comes from a
+ * module constant that a test executes verbatim.
+ */
 export function store(): Store | null {
   const sql = connect();
   if (!sql) return null;

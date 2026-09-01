@@ -8,7 +8,9 @@
  * database integration works" would be a claim resting on a deploy.
  *
  * Placeholders are $n and the values are passed separately; nothing is
- * interpolated into these strings.
+ * interpolated into these strings. They carry explicit casts because a driver
+ * is free to send a parameter as text and let the server sort it out, and a
+ * text parameter landing in a jsonb column is an error rather than a coercion.
  */
 
 export const CACHED_LISTING = `
@@ -17,13 +19,13 @@ export const CACHED_LISTING = `
 
 export const SAVE_LISTING = `
   insert into listing_cache (url, listing, fetched_at)
-  values ($1, $2, now())
+  values ($1, $2::jsonb, now())
   on conflict (url) do update
     set listing = excluded.listing, fetched_at = excluded.fetched_at
 `;
 
 export const LOG_INGEST = `
-  insert into ingest_log (host, outcome, ms) values ($1, $2, $3)
+  insert into ingest_log (host, outcome, ms) values ($1, $2, $3::integer)
 `;
 
 /**
@@ -41,11 +43,11 @@ export const TAKE_SLOT = `
   values ($1, 1, now())
   on conflict (client) do update set
     count = case
-      when rate_window.started_at < now() - make_interval(secs => $2) then 1
+      when rate_window.started_at < now() - make_interval(secs => $2::double precision) then 1
       else rate_window.count + 1
     end,
     started_at = case
-      when rate_window.started_at < now() - make_interval(secs => $2) then now()
+      when rate_window.started_at < now() - make_interval(secs => $2::double precision) then now()
       else rate_window.started_at
     end
   returning count, started_at
