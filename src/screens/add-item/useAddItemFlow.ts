@@ -12,13 +12,24 @@ import {
 
 export type Phase = 'idle' | 'running' | 'catalogue' | 'cutout' | 'nomatch' | 'error';
 
-/** The fields only a human can supply — so they are typed, not guessed. */
+/**
+ * The fields only a human can supply — so they are typed, not guessed.
+ *
+ * The catalogue fields are optional and empty by default. The cut-out path
+ * cannot know a brand or a price, and the result card says so ("Brand, size,
+ * price — add by hand"); these are where that happens.
+ */
 export interface Draft {
   name: string;
   category: Category;
   silhouette: string;
   texture: string;
   aesthetic: Aesthetic;
+  brand: string;
+  styleCode: string;
+  colourway: string;
+  composition: string;
+  retail: string;
 }
 
 const EMPTY_DRAFT: Draft = {
@@ -27,6 +38,11 @@ const EMPTY_DRAFT: Draft = {
   silhouette: '',
   texture: '',
   aesthetic: 'casual',
+  brand: '',
+  styleCode: '',
+  colourway: '',
+  composition: '',
+  retail: '',
 };
 
 const PENDING: StepStatus[] = ['pending', 'pending', 'pending', 'pending'];
@@ -203,8 +219,21 @@ export function useAddItemFlow(): AddItemFlow {
   };
 }
 
-/** Everything the cut-out knows, plus everything the human typed. */
+/**
+ * Everything the cut-out knows, plus everything the human typed. Catalogue
+ * fields are omitted rather than stored empty, so "no brand recorded" and
+ * "brand recorded as nothing" stay distinguishable.
+ */
 export function itemFromDraft(draft: Draft, cutout: CutoutResult, id: string): Item {
+  const optional = (value: string) => (value.trim() ? { value: value.trim() } : null);
+  const catalogue = {
+    ...(optional(draft.brand) ? { brand: draft.brand.trim() } : {}),
+    ...(optional(draft.styleCode) ? { styleCode: draft.styleCode.trim() } : {}),
+    ...(optional(draft.colourway) ? { colourway: draft.colourway.trim() } : {}),
+    ...(optional(draft.composition) ? { composition: draft.composition.trim() } : {}),
+    ...(optional(draft.retail) ? { retail: draft.retail.trim() } : {}),
+  };
+
   return {
     id,
     category: draft.category,
@@ -217,6 +246,7 @@ export function itemFromDraft(draft: Draft, cutout: CutoutResult, id: string): I
     addedAt: new Date().toISOString().slice(0, 10),
     wornCount: 0,
     imageUrl: cutout.url,
+    ...catalogue,
     source: 'image',
   };
 }

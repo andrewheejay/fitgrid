@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { AutoModel, AutoProcessor, RawImage, type Tensor } from '@huggingface/transformers';
+import { AutoModel, AutoProcessor, RawImage } from '@huggingface/transformers';
 import type { Hex } from '~/domain/items';
 
 type HexTriple = [Hex, Hex, Hex];
@@ -19,10 +19,14 @@ type HexTriple = [Hex, Hex, Hex];
 const MODEL_ID = 'briaai/RMBG-1.4';
 
 /**
- * The shape of the single-channel matte the model hands back. Hand-rolled
- * because transformers.js does not type this model's output usefully.
+ * The single-channel matte the model hands back, as raw floats plus a shape.
+ * Hand-rolled because transformers.js does not type this model's output
+ * usefully.
  */
-type MaskTensor = Array<{ mul: (value: number) => { to: (dtype: string) => Tensor } }>;
+interface MaskTensor {
+  dims: number[];
+  data: Float32Array;
+}
 
 /** Padding around the trimmed garment, as a fraction of the canvas. */
 const PADDING = 0.12;
@@ -77,20 +81,22 @@ self.onmessage = async (event: MessageEvent<CutoutRequest>) => {
 
     // --- Matte -------------------------------------------------------------
     post({ type: 'progress', step: 'matte', ratio: 0 });
-    const raw = await RawImage.fromBlob(await bitmapToBlob(image));
+    /*
+     * .rgb() is load-bearing. The bitmap is handed over as a PNG, which carries
+     * an alpha channel, and the model expects three. Feeding it four leaves the
+     * silhouette roughly right but fills the background with noise.
+     */
+    const raw = (await RawImage.fromBlob(await bitmapToBlob(image))).rgb();
     const { pixel_values } = await processor(raw);
 
     // RMBG returns a named output, not a bare tensor. Fall back to the first
     // value so a renamed output in a future model revision does not break this.
     const result = (await model({ input: pixel_values })) as Record<string, MaskTensor>;
     const mask = result['output'] ?? Object.values(result)[0];
-    const channel = mask?.[0];
-    if (!channel) throw new Error('The model returned no matte');
+    if (!mask) throw new Error('The model returned no matte');
 
-    const alphaMap = await RawImage.fromTensor(channel.mul(255).to('uint8')).resize(
-      image.width,
-      image.height,
-    );
+    const alpha = cleanMatte(alphaFromMask(mask, image.width, image.height), image.width, image.height);
+
     post({ type: 'progress', step: 'matte', ratio: 1 });
 
     // --- Composite ---------------------------------------------------------
@@ -100,8 +106,8 @@ self.onmessage = async (event: MessageEvent<CutoutRequest>) => {
     context.drawImage(image, 0, 0);
 
     const pixels = context.getImageData(0, 0, image.width, image.height);
-    for (let i = 0; i < alphaMap.data.length; i += 1) {
-      pixels.data[i * 4 + 3] = alphaMap.data[i] ?? 0;
+    for (let p = 0; p < image.width * image.height; p += 1) {
+      pixels.data[p * 4 + 3] = alpha[p] ?? 0;
     }
     context.putImageData(pixels, 0, 0);
 
@@ -125,6 +131,187 @@ self.onmessage = async (event: MessageEvent<CutoutRequest>) => {
     });
   }
 };
+
+/**
+ * Turn the model's matte into one alpha byte per pixel of the source image.
+ *
+ * The raw output is not in 0–1: it is an unnormalised saliency map, and the
+ * reference post-processing min-max normalises it before use. Skipping that
+ * and casting straight to uint8 both keeps background (small positive values
+ * become visible alpha) and punches holes through the garment (values above 1
+ * wrap when they are truncated) — which looks like a bad model but is bad
+ * arithmetic.
+ */
+function alphaFromMask(mask: MaskTensor, width: number, height: number): Uint8ClampedArray {
+  const maskWidth = mask.dims[mask.dims.length - 1] ?? width;
+  const maskHeight = mask.dims[mask.dims.length - 2] ?? height;
+  const values = mask.data;
+  const count = maskWidth * maskHeight;
+
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < count; i += 1) {
+    const value = values[i] ?? 0;
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
+  const span = max - min || 1;
+
+  // Draw the normalised matte at model resolution, then let the canvas scale it
+  // to the source image with proper interpolation.
+  const maskCanvas = new OffscreenCanvas(maskWidth, maskHeight);
+  const maskContext = maskCanvas.getContext('2d');
+  if (!maskContext) throw new Error('No 2d context for the matte');
+
+  const maskPixels = maskContext.createImageData(maskWidth, maskHeight);
+  for (let i = 0; i < count; i += 1) {
+    const normalised = (((values[i] ?? 0) - min) / span) * 255;
+    maskPixels.data[i * 4] = normalised;
+    maskPixels.data[i * 4 + 1] = normalised;
+    maskPixels.data[i * 4 + 2] = normalised;
+    maskPixels.data[i * 4 + 3] = 255;
+  }
+  maskContext.putImageData(maskPixels, 0, 0);
+
+  const scaled = new OffscreenCanvas(width, height);
+  const scaledContext = scaled.getContext('2d');
+  if (!scaledContext) throw new Error('No 2d context for the scaled matte');
+  scaledContext.drawImage(maskCanvas, 0, 0, width, height);
+
+  const scaledPixels = scaledContext.getImageData(0, 0, width, height).data;
+  const alpha = new Uint8ClampedArray(width * height);
+  for (let p = 0; p < alpha.length; p += 1) alpha[p] = scaledPixels[p * 4] ?? 0;
+  return alpha;
+}
+
+/** Alpha at or above this counts as garment when deciding what is connected. */
+const SOLID = 128;
+
+/**
+ * Clean a soft matte into a usable one.
+ *
+ * The model returns a saliency map, not a decision: the garment comes back
+ * crisp, but the background carries speckle and the garment carries pinholes.
+ * Using it raw is what leaves grey confetti around a cut-out.
+ *
+ * So: take the largest connected solid region as the garment, drop every other
+ * island, and fill any enclosed gap. Edge softness is preserved by keeping the
+ * original alpha wherever the garment survives — only whole regions are
+ * decided here, never individual edge pixels.
+ */
+function cleanMatte(alpha: Uint8ClampedArray, width: number, height: number): Uint8ClampedArray {
+  const count = width * height;
+  const label = new Int32Array(count).fill(-1);
+  const queue = new Int32Array(count);
+
+  let bestLabel = -1;
+  let bestSize = 0;
+  let next = 0;
+
+  // Label every solid region, remembering the biggest — that is the garment.
+  for (let start = 0; start < count; start += 1) {
+    if (label[start] !== -1 || (alpha[start] ?? 0) < SOLID) continue;
+
+    const current = next;
+    next += 1;
+    let head = 0;
+    let tail = 0;
+    queue[tail] = start;
+    tail += 1;
+    label[start] = current;
+    let size = 0;
+
+    while (head < tail) {
+      const pixel = queue[head] ?? 0;
+      head += 1;
+      size += 1;
+      const x = pixel % width;
+      const y = (pixel - x) / width;
+
+      for (let d = 0; d < 4; d += 1) {
+        const nx = x + (d === 0 ? -1 : d === 1 ? 1 : 0);
+        const ny = y + (d === 2 ? -1 : d === 3 ? 1 : 0);
+        if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+        const neighbour = ny * width + nx;
+        if (label[neighbour] !== -1 || (alpha[neighbour] ?? 0) < SOLID) continue;
+        label[neighbour] = current;
+        queue[tail] = neighbour;
+        tail += 1;
+      }
+    }
+
+    if (size > bestSize) {
+      bestSize = size;
+      bestLabel = current;
+    }
+  }
+
+  if (bestLabel === -1) return alpha; // nothing solid found; leave it alone
+
+  // Flood the background inward from the border. Anything transparent that the
+  // flood never reaches is an enclosed gap in the garment, so fill it.
+  const outside = new Uint8Array(count);
+  let head = 0;
+  let tail = 0;
+  const pushIfBackground = (pixel: number) => {
+    if (outside[pixel] === 1) return;
+    if (label[pixel] === bestLabel) return;
+    outside[pixel] = 1;
+    queue[tail] = pixel;
+    tail += 1;
+  };
+
+  for (let x = 0; x < width; x += 1) {
+    pushIfBackground(x);
+    pushIfBackground((height - 1) * width + x);
+  }
+  for (let y = 0; y < height; y += 1) {
+    pushIfBackground(y * width);
+    pushIfBackground(y * width + width - 1);
+  }
+
+  while (head < tail) {
+    const pixel = queue[head] ?? 0;
+    head += 1;
+    const x = pixel % width;
+    const y = (pixel - x) / width;
+    for (let d = 0; d < 4; d += 1) {
+      const nx = x + (d === 0 ? -1 : d === 1 ? 1 : 0);
+      const ny = y + (d === 2 ? -1 : d === 3 ? 1 : 0);
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+      pushIfBackground(ny * width + nx);
+    }
+  }
+
+  const kept = (pixel: number) => label[pixel] === bestLabel || outside[pixel] === 0;
+
+  const cleaned = new Uint8ClampedArray(count);
+  for (let p = 0; p < count; p += 1) {
+    if (!kept(p)) {
+      cleaned[p] = 0;
+      continue;
+    }
+
+    /*
+     * Inside the garment, go fully opaque. Partial alpha in the interior is
+     * what speckles a cut-out with pinholes of background. Only pixels that
+     * actually touch the background keep their soft value, which is where
+     * antialiasing belongs.
+     */
+    const x = p % width;
+    const y = (p - x) / width;
+    let onEdge = false;
+    for (let d = 0; d < 4 && !onEdge; d += 1) {
+      const nx = x + (d === 0 ? -1 : d === 1 ? 1 : 0);
+      const ny = y + (d === 2 ? -1 : d === 3 ? 1 : 0);
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+      if (!kept(ny * width + nx)) onEdge = true;
+    }
+
+    cleaned[p] = onEdge ? (alpha[p] ?? 0) : 255;
+  }
+  return cleaned;
+}
 
 async function bitmapToBlob(bitmap: ImageBitmap): Promise<Blob> {
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);

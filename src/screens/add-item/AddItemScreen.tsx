@@ -10,9 +10,23 @@ import styles from './AddItemScreen.module.css';
 import { CATALOGUE_MATCH, catalogueItem } from './catalogueMatch';
 import { Pipeline } from './Pipeline';
 import { Field, Fields, ResultCard, Select } from './ResultCard';
-import { itemFromDraft, useAddItemFlow } from './useAddItemFlow';
+import { itemFromDraft, useAddItemFlow, type Draft } from './useAddItemFlow';
 
 const AESTHETICS: readonly Aesthetic[] = ['workwear', 'quiet', 'casual', 'utility', 'sport'];
+
+/**
+ * What the cut-out path still cannot tell you. It updates as the fields below
+ * are filled in — the row is a prompt, not a fixed disclaimer.
+ */
+function stillMissing(draft: Draft): string {
+  const gaps: string[] = [];
+  if (!draft.brand.trim()) gaps.push('Brand');
+  if (!draft.colourway.trim()) gaps.push('colourway');
+  if (!draft.retail.trim()) gaps.push('price');
+
+  if (gaps.length === 0) return 'Nothing — you filled it in';
+  return `${gaps.join(', ')} — add by hand`;
+}
 
 export function AddItemScreen() {
   const addItem = useWardrobe((state) => state.addItem);
@@ -167,7 +181,7 @@ export function AddItemScreen() {
 
         {phase === 'cutout' && cutout ? (
           <ResultCard
-            brand="Cut-out"
+            brand={draft.brand.trim() || 'Cut-out'}
             name={draft.name.trim() || 'Name it below'}
             pill="Cut-out clean"
             pillTone="cutout"
@@ -175,7 +189,7 @@ export function AddItemScreen() {
               { key: 'Source', value: 'Image you supplied' },
               { key: 'Matte edges', value: 'Removed in your browser' },
               { key: 'Framing', value: 'Centred, 12% padding' },
-              { key: 'Missing', value: 'Brand, size, price — add by hand' },
+              { key: 'Missing', value: stillMissing(draft) },
             ]}
             tags={[draft.category, ...cutout.palette]}
             actions={
@@ -223,6 +237,41 @@ export function AddItemScreen() {
                 value={draft.texture}
                 onChange={(texture) => flow.setDraft({ ...draft, texture })}
                 placeholder="cotton poplin"
+              />
+              {/*
+                The card above says brand, size and price have to be added by
+                hand. These are where that happens — all optional.
+              */}
+              <Field
+                label="Brand"
+                value={draft.brand}
+                onChange={(brand) => flow.setDraft({ ...draft, brand })}
+                placeholder="optional"
+              />
+              <Field
+                label="Colourway"
+                value={draft.colourway}
+                onChange={(colourway) => flow.setDraft({ ...draft, colourway })}
+                placeholder="optional"
+              />
+              <Field
+                label="Style code"
+                value={draft.styleCode}
+                onChange={(styleCode) => flow.setDraft({ ...draft, styleCode })}
+                placeholder="optional"
+              />
+              <Field
+                label="Retail"
+                value={draft.retail}
+                onChange={(retail) => flow.setDraft({ ...draft, retail })}
+                placeholder="optional"
+              />
+              <Field
+                label="Composition"
+                value={draft.composition}
+                onChange={(composition) => flow.setDraft({ ...draft, composition })}
+                placeholder="optional"
+                wide
               />
             </Fields>
           </ResultCard>

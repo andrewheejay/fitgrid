@@ -2,11 +2,26 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Button } from '~/components/Button';
 import { GarmentImage } from '~/components/GarmentImage';
-import { SpecTable } from '~/components/SpecTable';
+import { SpecTable, type SpecRow } from '~/components/SpecTable';
 import { formatShortDate } from '~/domain/date';
+import type { Item } from '~/domain/items';
 import { layerName } from '~/domain/layers';
 import { useItem, useWardrobe } from '~/store/wardrobeStore';
 import styles from './ItemDetailScreen.module.css';
+
+/** The rows an item only has if it came from, or was matched to, a catalogue. */
+function catalogueRows(item: Item): SpecRow[] {
+  const rows: Array<[string, string | undefined]> = [
+    ['Brand', item.brand],
+    ['Style code', item.styleCode],
+    ['Colourway', item.colourway],
+    ['Composition', item.composition],
+    ['Retail', item.retail],
+  ];
+  return rows
+    .filter((row): row is [string, string] => Boolean(row[1]))
+    .map(([key, value]) => ({ key, value }));
+}
 
 export function ItemDetailScreen() {
   const { itemId } = useParams({ from: '/wardrobe/$itemId' });
@@ -50,6 +65,12 @@ export function ItemDetailScreen() {
               { key: 'Silhouette', value: item.silhouette },
               { key: 'Texture', value: item.texture },
               { key: 'Aesthetic', value: item.aesthetic },
+              /*
+               * Catalogue facts appear only when the item has them: a
+               * self-photographed piece has no style code, and an empty row
+               * would claim otherwise.
+               */
+              ...catalogueRows(item),
               {
                 key: 'Worn',
                 value: `${item.wornCount} time${item.wornCount === 1 ? '' : 's'}`,
