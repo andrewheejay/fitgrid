@@ -100,6 +100,10 @@ than invented, and are the first thing to design properly.
   headers cannot be read back off a canvas; dropping the file always works.
 - **The segmentation model is several megabytes**, fetched on first use of that
   tab only. It never touches first paint.
+- **A saved fit cannot be deleted individually** — resetting the demo is the
+  only way to clear one. Saving is a single keystroke, so this is a real gap;
+  it needs a delete affordance designed into the fits cell rather than
+  improvised, since the handoff does not draw one.
 - **Cut-outs are stored in `localStorage` as WebP data URLs**, capped at 640px.
   That is durable across reloads but not unbounded — a wardrobe of many
   self-added garments would eventually hit the storage quota, at which point

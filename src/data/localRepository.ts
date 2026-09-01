@@ -19,7 +19,6 @@ export function createLocalRepository(): WardrobeRepository {
           addedItems: parsed.addedItems ?? [],
           removedItemIds: parsed.removedItemIds ?? [],
           savedOutfits: parsed.savedOutfits ?? [],
-          removedOutfitIds: parsed.removedOutfitIds ?? [],
         };
       } catch {
         return emptyOverlay();

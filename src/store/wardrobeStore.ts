@@ -9,7 +9,7 @@ import {
 } from '~/data/overlay';
 import type { WardrobeRepository } from '~/data/repository';
 import type { Item, ItemId } from '~/domain/items';
-import type { Outfit, OutfitId } from '~/domain/outfits';
+import type { Outfit } from '~/domain/outfits';
 
 interface WardrobeState {
   overlay: Overlay;
@@ -18,7 +18,6 @@ interface WardrobeState {
   addItem: (item: Item) => void;
   removeItem: (id: ItemId) => void;
   saveOutfit: (outfit: Outfit) => void;
-  removeOutfit: (id: OutfitId) => void;
   reset: () => void;
 }
 
@@ -61,17 +60,6 @@ export function createWardrobeStore(repository: WardrobeRepository) {
       saveOutfit: (outfit) => {
         const { overlay } = get();
         commit({ ...overlay, savedOutfits: [outfit, ...overlay.savedOutfits] });
-      },
-
-      removeOutfit: (id) => {
-        const { overlay } = get();
-        commit({
-          ...overlay,
-          savedOutfits: overlay.savedOutfits.filter((fit) => fit.id !== id),
-          removedOutfitIds: overlay.removedOutfitIds.includes(id)
-            ? overlay.removedOutfitIds
-            : [...overlay.removedOutfitIds, id],
-        });
       },
 
       reset: () => {
