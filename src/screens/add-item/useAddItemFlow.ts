@@ -21,7 +21,7 @@ export interface Draft {
   aesthetic: Aesthetic;
 }
 
-export const EMPTY_DRAFT: Draft = {
+const EMPTY_DRAFT: Draft = {
   name: '',
   category: 'top',
   silhouette: '',

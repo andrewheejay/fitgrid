@@ -34,7 +34,7 @@ export const SORTS: ReadonlyArray<{ id: WardrobeSort; label: string }> = [
   { id: 'aesthetic', label: 'Aesthetic' },
 ];
 
-export function applyFilter(items: readonly Item[], filter: WardrobeFilter): Item[] {
+function applyFilter(items: readonly Item[], filter: WardrobeFilter): Item[] {
   return filter === 'all' ? [...items] : items.filter((item) => item.category === filter);
 }
 
