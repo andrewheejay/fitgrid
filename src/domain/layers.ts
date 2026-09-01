@@ -32,8 +32,3 @@ export function layerAt(index: number): Layer {
 export function indexOfLayer(layer: Layer): number {
   return LAYERS.indexOf(layer);
 }
-
-/** Outerwear is optional: a t-shirt day should not be forced into a jacket. */
-export function isOptional(layer: Layer): boolean {
-  return layer === 'outer';
-}

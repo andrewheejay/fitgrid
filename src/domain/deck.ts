@@ -1,6 +1,6 @@
 import type { Flash } from './flash';
 import type { ItemId } from './items';
-import { LAYERS, layerAt, type Layer } from './layers';
+import { indexOfLayer, LAYERS, layerAt, type Layer } from './layers';
 import { cycleIndex } from './rail';
 
 export type DeckMode = 'auto' | 'manual';
@@ -85,7 +85,7 @@ export function initialDeckState(options: DeckStateOptions = {}): DeckState {
   const { layer, index } = options.lock;
   return {
     ...state,
-    activeLayer: LAYERS.indexOf(layer),
+    activeLayer: indexOfLayer(layer),
     selection: { ...state.selection, [layer]: index },
     locked: { ...state.locked, [layer]: true },
   };
@@ -128,7 +128,7 @@ export function reduce(
         withFlash(
           {
             ...state,
-            activeLayer: LAYERS.indexOf(layer),
+            activeLayer: indexOfLayer(layer),
             locked: { ...state.locked, [layer]: nowLocked },
           },
           { kind: nowLocked ? 'locked' : 'unlocked', layer },
@@ -177,7 +177,7 @@ export function reduce(
       return [
         {
           ...state,
-          activeLayer: LAYERS.indexOf(event.layer),
+          activeLayer: indexOfLayer(event.layer),
           selection: { ...state.selection, [event.layer]: event.index },
         },
         NO_EFFECTS,
