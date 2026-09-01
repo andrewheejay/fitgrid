@@ -37,7 +37,7 @@ export const SOURCES: readonly Source[] = [
   {
     id: 'link',
     tab: 'Paste link',
-    placeholder: 'nike.com/… or pacsun.com/…',
+    placeholder: 'nike.com/… or another product page',
     hint:
       'Fitgrid reads the listing, not the photo: the page’s own product metadata, then ' +
       'its studio image, cut out in your browser. Retailers that block automated readers ' +
