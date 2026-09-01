@@ -4,9 +4,11 @@ import type { Item } from '~/domain/items';
 /**
  * The fixture a catalogue lookup resolves to.
  *
- * This path is a demonstration: resolving a brand and style code needs
- * commercial product data or a per-brand scraper set, and the handoff itself
- * lists that as unproven. The shape is real; the answer is fixed.
+ * The care label and the order email are demonstrations: reading a sewn-in
+ * label, or parsing every retailer's confirmation email, needs commercial
+ * product data or a per-brand parser set, and the handoff itself lists that as
+ * unproven. The shape is real; the answer is fixed. (The link path used to
+ * land here too — it now reads the page, in ~/ingest/listing.)
  */
 export const CATALOGUE_MATCH = {
   brand: 'Uniqlo U',

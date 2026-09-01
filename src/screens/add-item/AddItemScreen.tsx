@@ -2,8 +2,10 @@ import { useNavigate } from '@tanstack/react-router';
 import { useState, type DragEvent } from 'react';
 import { Button } from '~/components/Button';
 import { Tab } from '~/components/Chip';
+import type { SpecRow } from '~/components/SpecTable';
 import type { Aesthetic } from '~/domain/items';
 import { LAYERS, layerName, type Category } from '~/domain/layers';
+import { hostname, READER_LABEL, type Listing } from '~/ingest/listing';
 import { SOURCES } from '~/ingest/sources';
 import { useWardrobe } from '~/store/wardrobeStore';
 import styles from './AddItemScreen.module.css';
@@ -15,17 +17,37 @@ import { itemFromDraft, useAddItemFlow, type Draft } from './useAddItemFlow';
 const AESTHETICS: readonly Aesthetic[] = ['workwear', 'quiet', 'casual', 'utility', 'sport'];
 
 /**
- * What the cut-out path still cannot tell you. It updates as the fields below
- * are filled in — the row is a prompt, not a fixed disclaimer.
+ * What the run still could not tell you. It updates as the fields below are
+ * filled in — the row is a prompt, not a fixed disclaimer.
  */
-function stillMissing(draft: Draft): string {
+function stillMissing(draft: Draft, listing: Listing | null): string {
   const gaps: string[] = [];
   if (!draft.brand.trim()) gaps.push('Brand');
   if (!draft.colourway.trim()) gaps.push('colourway');
   if (!draft.retail.trim()) gaps.push('price');
 
-  if (gaps.length === 0) return 'Nothing — you filled it in';
-  return `${gaps.join(', ')} — add by hand`;
+  if (gaps.length > 0) return `${gaps.join(', ')} — add by hand`;
+  return listing ? 'Nothing — the listing had it all' : 'Nothing — you filled it in';
+}
+
+/** The rows above the editable fields: where this cut-out came from. */
+function provenanceRows(listing: Listing | null, draft: Draft): SpecRow[] {
+  const shared: SpecRow[] = [
+    { key: 'Matte edges', value: 'Removed in your browser' },
+    { key: 'Missing', value: stillMissing(draft, listing) },
+  ];
+  if (!listing) {
+    return [
+      { key: 'Source', value: 'Image you supplied' },
+      { key: 'Framing', value: 'Centred, 12% padding' },
+      ...shared,
+    ];
+  }
+  return [
+    { key: 'Source', value: hostname(listing.url) },
+    { key: 'Read via', value: READER_LABEL[listing.via] },
+    ...shared,
+  ];
 }
 
 export function AddItemScreen() {
@@ -34,7 +56,7 @@ export function AddItemScreen() {
   const flow = useAddItemFlow();
   const [dragging, setDragging] = useState(false);
 
-  const { source, phase, cutout, draft } = flow;
+  const { source, phase, cutout, draft, listing } = flow;
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -52,7 +74,7 @@ export function AddItemScreen() {
 
   const addCutoutItem = () => {
     if (!cutout) return;
-    addItem(itemFromDraft(draft, cutout, crypto.randomUUID()));
+    addItem(itemFromDraft(draft, cutout, crypto.randomUUID(), source.id));
     navigate({ to: '/wardrobe' });
   };
 
@@ -80,9 +102,7 @@ export function AddItemScreen() {
           ) : phase === 'catalogue' ? (
             <div className={`${styles.glyph} ${styles.glyphImage}`} aria-hidden="true" />
           ) : busy ? (
-            <p className={styles.frameText}>
-              {source.real ? 'Removing background' : 'Reading scan care label'}
-            </p>
+            <p className={styles.frameText}>{source.busyCaption}</p>
           ) : (
             <>
               <div
@@ -181,16 +201,11 @@ export function AddItemScreen() {
 
         {phase === 'cutout' && cutout ? (
           <ResultCard
-            brand={draft.brand.trim() || 'Cut-out'}
+            brand={draft.brand.trim() || (listing ? hostname(listing.url) : 'Cut-out')}
             name={draft.name.trim() || 'Name it below'}
-            pill="Cut-out clean"
-            pillTone="cutout"
-            rows={[
-              { key: 'Source', value: 'Image you supplied' },
-              { key: 'Matte edges', value: 'Removed in your browser' },
-              { key: 'Framing', value: 'Centred, 12% padding' },
-              { key: 'Missing', value: stillMissing(draft) },
-            ]}
+            pill={listing ? 'Listing read' : 'Cut-out clean'}
+            pillTone={listing ? 'match' : 'cutout'}
+            rows={provenanceRows(listing, draft)}
             tags={[draft.category, ...cutout.palette]}
             actions={
               <>
@@ -279,10 +294,14 @@ export function AddItemScreen() {
 
         {phase === 'nomatch' ? (
           <div className={styles.error}>
-            <p className={styles.errorLabel}>No catalogue match</p>
+            <p className={styles.errorLabel}>
+              {source.id === 'link' ? 'Could not read that page' : 'No catalogue match'}
+            </p>
             <p className={styles.errorBody}>
-              Vintage, tailored and thrifted pieces usually aren&rsquo;t listed anywhere. Find any
-              photo of it online and drop that in — Fitgrid will cut the background out.
+              {flow.error ??
+                'Vintage, tailored and thrifted pieces usually aren\u2019t listed anywhere.'}{' '}
+              Find any photo of it online and drop that in — Fitgrid will cut the background
+              out.
             </p>
             <div className={styles.errorActions}>
               <Button variant="invert" onClick={() => flow.switchSource('image')}>

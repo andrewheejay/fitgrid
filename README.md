@@ -58,17 +58,35 @@ boundary tests instead of a bug.
 The site is honest about this distinction, and so is the UI.
 
 **Real.** The wardrobe, the deck, saved fits, and persistence. The weather chip
-pulls live conditions from Open-Meteo. And the image-drop ingest path does
-genuine work in your browser: BRIA's RMBG-1.4 runs under transformers.js in a
+pulls live conditions from Open-Meteo. And both ingest paths that take an image
+do genuine work in your browser: BRIA's RMBG-1.4 runs under transformers.js in a
 Web Worker, the matte is trimmed and centred on canvas with even padding, and
-the palette is extracted from the cut-out's own pixels. Nothing is uploaded
-anywhere — the model runs on your machine.
+the palette is extracted from the cut-out's own pixels. The model runs on your
+machine; no image is uploaded anywhere.
 
-**Demonstrated.** The three catalogue paths (care label, product link, order
-email) run the real four-step pipeline shape against a fixed example, and say so
-on screen. Resolving a brand and style code needs commercial product data or a
-per-brand scraper set; the handoff lists that as unproven, and inventing a fake
-one would have been the least interesting thing in the build.
+**Paste link** is real too, and reads a product page for what the page itself
+publishes: schema.org `Product` data and OpenGraph tags, which between them
+carry a name, brand, style code, colourway, composition, price and the studio
+photograph. That photo then goes through the same cut-out pipeline as a dropped
+image, and what came back fills the form — still editable, because a shop's own
+copy is often not what you would file it under.
+
+It works on the shops it works on. Most large retailers sit behind bot
+protection that refuses an automated request, and which reader a given shop
+tolerates is not predictable, so four are tried in order: the site itself first
+(no third party sees the URL when a shop serves permissive CORS headers), then
+`r.jina.ai`, `allorigins.win` and `microlink.io`. Measured across a handful of
+shops these barely overlap — one gets Uniqlo, another Pacsun, a third Nike — and
+plenty are refused by all four. A shop can also publish a readable listing and
+still refuse the pixels. Either way the run ends on the no-match card, which
+says what happened and routes to the image drop.
+
+**Demonstrated.** The two remaining catalogue paths (care label, order email)
+run the real four-step pipeline shape against a fixed example, and say so on
+screen. Reading a sewn-in label or parsing every retailer's order email needs
+commercial product data or a per-brand parser set; the handoff lists that as
+unproven, and inventing a fake one would have been the least interesting thing
+in the build.
 
 ## Decisions taken against the handoff
 
@@ -86,6 +104,7 @@ Both changed, deliberately.
 | **`addedAt` is stored as ISO, not "Mar 04".** | Pre-formatted dates sort incorrectly across a year boundary. |
 | **The account chip became `reset@fitgrid`.** | `alex@fitgrid` is a fake account on a site with no accounts. The honest occupant of that slot is the one piece of state the visitor actually owns — what they have changed — so it resets the demo. |
 | **The fourth ingest step was renamed.** | The prototype's note column read "Gemini → Pinecone". There is no Gemini and no Pinecone here, and the status line should not claim otherwise. |
+| **"Paste link" was made real rather than simulated.** | It was drawn as a catalogue lookup, which needs product data this build does not have. But a product page already publishes most of those fields about itself in schema.org and OpenGraph markup, and the cut-out pipeline was already there to take the photo. Reading the page is a different claim from resolving a SKU, so the pipeline's four rows say what it actually does. |
 
 Two states the handoff explicitly left undesigned — zero saved fits, and a
 category too sparse for the deck to build a fit — are implemented plainly rather
@@ -98,6 +117,13 @@ than invented, and are the first thing to design properly.
   keyboard model has no touch equivalent.
 - **A pasted image URL is best-effort.** An image served without permissive CORS
   headers cannot be read back off a canvas; dropping the file always works.
+- **Link ingest depends on three public readers** and covers only the shops
+  they are allowed to reach. They are unauthenticated and rate-limited, they go
+  down (`allorigins.win` was refusing every request while this was built, which
+  is why each reader has its own timeout and the chain moves on), and a pasted
+  URL is sent to whichever one answers. A paid product-data API or a
+  headless-browser service is what turns partial coverage into reliable
+  coverage; neither belongs in a static site with no server.
 - **The segmentation model is several megabytes**, fetched on first use of that
   tab only. It never touches first paint.
 - **A saved fit cannot be deleted individually** — resetting the demo is the

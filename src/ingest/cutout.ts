@@ -78,7 +78,7 @@ function toDataUrl(blob: Blob): Promise<string> {
  * belongs to the other site, not to us. It gets its own message so the visitor
  * knows dropping the file instead will work.
  */
-export async function loadBitmap(input: File | string): Promise<ImageBitmap> {
+export async function loadBitmap(input: File | string, timeoutMs?: number): Promise<ImageBitmap> {
   if (input instanceof File) {
     if (!input.type.startsWith('image/')) {
       throw new Error('That file is not an image.');
@@ -88,7 +88,12 @@ export async function loadBitmap(input: File | string): Promise<ImageBitmap> {
 
   let response: Response;
   try {
-    response = await fetch(input, { mode: 'cors' });
+    response = await fetch(input, {
+      mode: 'cors',
+      // A proxy that cannot reach the origin holds the connection open rather
+      // than refusing, so an unbounded wait here is a hung pipeline.
+      ...(timeoutMs === undefined ? {} : { signal: AbortSignal.timeout(timeoutMs) }),
+    });
   } catch {
     throw new Error(
       'That image could not be read from its site. Save it and drop the file instead.',

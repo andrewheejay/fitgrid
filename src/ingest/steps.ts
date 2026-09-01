@@ -7,11 +7,12 @@ export interface PipelineStep {
 }
 
 /**
- * Catalogue lookup. Simulated: resolving a brand and SKU needs commercial
- * product data or a per-brand scraper set, which this build does not have.
+ * Catalogue lookup. Simulated: resolving a brand and SKU from a photograph of
+ * a care label, or from a forwarded order email, needs commercial product data
+ * or a per-brand parser set, which this build does not have.
  */
 export const CATALOGUE_STEPS: readonly PipelineStep[] = [
-  { label: 'Read source', note: 'label / link / receipt' },
+  { label: 'Read source', note: 'label / receipt' },
   { label: 'Catalogue lookup', note: 'brand + SKU match' },
   { label: 'Pull studio image', note: 'official product shot' },
   { label: 'File into wardrobe', note: 'tagged and dated' },
@@ -30,4 +31,17 @@ export const CUTOUT_STEPS: readonly PipelineStep[] = [
   { label: 'Background removal', note: 'RMBG-1.4, in your browser' },
   { label: 'Trim + centre on canvas', note: 'even padding' },
   { label: 'Palette + tagging', note: 'colours from the cut-out' },
+];
+
+/**
+ * The pasted link. Real work, though not the work the catalogue paths pretend
+ * to: nothing here resolves a SKU from a brand database. It reads the metadata
+ * the page publishes about itself, takes the studio image that metadata points
+ * at, and cuts it out in the browser like any other image.
+ */
+export const LINK_STEPS: readonly PipelineStep[] = [
+  { label: 'Read listing', note: 'opengraph + schema.org' },
+  { label: 'Pull studio image', note: 'from the listing' },
+  { label: 'Background removal', note: 'RMBG-1.4, in your browser' },
+  { label: 'Trim + palette', note: 'colours from the cut-out' },
 ];

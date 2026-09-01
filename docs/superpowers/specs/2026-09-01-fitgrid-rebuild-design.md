@@ -49,7 +49,7 @@ decision below:
 - **All server infrastructure.** No database, no API, no accounts, no RLS, no migrations.
 - **Vector search, embeddings, Pinecone, Gemini, MiniLM.** See §11 D-02.
 - **Camera capture.** Out of scope in the handoff, and stays out.
-- **Real catalogue lookup** for the label / link / order-email paths. Simulated, marked as such. See §11 D-05.
+- **Real catalogue lookup** for the label / link / order-email paths. Simulated, marked as such. See §11 D-05 — later revised for the link path by D-11.
 - **Mobile layouts.** Desktop-first, ≥1280px, as designed. See §12 R-04.
 
 ---
@@ -356,9 +356,15 @@ Pinecone". There is no Gemini and no Pinecone in this build and the note column
 must not claim otherwise; the handoff explicitly permits swapping the model
 names while keeping the four-step shape.
 
-The three catalogue paths (care label, product link, order email) remain
-simulations against fixtures, with one quiet mono line marking them as a demo.
-Their four-step pipeline copy is unchanged.
+Two catalogue paths (care label, order email) remain simulations against
+fixtures, with one quiet mono line marking them as a demo. Their four-step
+pipeline copy is unchanged.
+
+The product link is not a simulation — see D-11. It carries its own four rows
+(read listing / pull studio image / background removal / trim + palette),
+because it reads what the page publishes about itself and then hands the studio
+photo to the cut-out pipeline. It has no demo line; a shop that refuses every
+reader ends on the no-match card the design already draws.
 
 Model licensing is an open item, not an assumption — see §12 R-01.
 
@@ -433,6 +439,7 @@ and why. For this audience that document is read before the code.
 | D-07 | **`addedAt` stored as ISO.** | The prototype's `"Mar 04"` strings sort incorrectly across a year boundary. Formatting is a view concern. |
 | D-08 | **Saved fits reopen in the deck, fully locked.** | The handoff leaves this open ("reload it into the deck, or a detail view"). Reloading locked reuses the whole deck screen and matches what wearing a saved fit again means. |
 | D-09 | **Build, run, then test.** | User decision. Tradeoff recorded in §9. |
+| D-11 | **"Paste link" reads the page instead of simulating a catalogue.** Supersedes D-05 for that path only. | D-05 assumed the link path needed the same product database as the label and the order email. It does not: a product page publishes name, brand, style code, colourway, composition, price and its studio photograph about itself, in schema.org `Product` markup and OpenGraph tags, and the cut-out pipeline already existed to take the photo. What it cannot do is resolve a SKU the page never stated, so the pipeline rows claim reading, not matching. Coverage is partial by nature — bot protection refuses an automated request at most large retailers, and which reader a shop tolerates does not generalise — so four readers are tried in order and a refusal lands on the existing no-match card rather than a new failure state. See R-05. |
 | D-10 | **The weather chip shows real weather for one fixed city, fetched client-side.** | Open-Meteo needs no API key and sends permissive CORS headers, so the chip can be genuinely live with no backend. Location is a fixed city rather than the browser's geolocation: a permission prompt on first load of a portfolio link is hostile, and the design draws a specific city into the layout. Falls back to the seeded value if the request fails. |
 
 ---
@@ -445,6 +452,7 @@ and why. For this audience that document is read before the code.
 | R-02 | **Model download weight.** Segmentation weights are multiple megabytes per visitor who tries the cut-out. | Lazy-load on tab selection only, cache, and show real progress. It never touches the first paint. |
 | R-03 | **Cross-origin image URLs.** Most images found on the web cannot be read back off a canvas. | File drop is the primary path; URL is best-effort with a specific error state. Set expectations in the hint copy. |
 | R-04 | **No responsive design exists.** The split-screen layouts have no stacking rule below ~900px and the deck's keyboard model has no touch equivalent. | Ship desktop-first as designed. Below the breakpoint, show an honest note rather than a broken layout. Designing mobile is a separate piece of work. |
+| R-05 | **Link ingest leans on three public readers.** They are unauthenticated, rate-limited and occasionally down — `allorigins.win` refused every request for part of the build — and a visitor's pasted URL is sent to whichever answers. Mitigated by trying the shop itself first (no third party sees the URL when CORS allows it), giving each reader its own timeout so a dead one costs seconds rather than the run, and degrading to the no-match card. Not mitigated: coverage. Turning partial into reliable needs a paid product-data API or a headless-browser service, and a static site has nowhere to put either. |
 | Q-01 | **Two empty states are undesigned:** zero saved fits, and a category too sparse for the deck to build a fit. | The handoff says to ask rather than invent. Design them before building them. |
 | Q-02 | **Should wearing a fit increment `wornCount`?** The handoff raises this and leaves it open. | Out of scope for v1; `wornCount` comes from seed data. Revisit after the deck ships. |
 

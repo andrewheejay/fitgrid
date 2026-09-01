@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { guessCategory } from '~/ingest/classify';
 import type { Aesthetic, Hex, Item } from '~/domain/items';
 import type { Category } from '~/domain/layers';
-import { loadBitmap, runCutout, type CutoutResult } from '~/ingest/cutout';
-import { sourceById, type Source, type SourceId } from '~/ingest/sources';
+import { loadBitmap, runCutout, type CutoutProgress, type CutoutResult } from '~/ingest/cutout';
 import {
-  CATALOGUE_STEPS,
-  CUTOUT_STEPS,
-  type PipelineStep,
-  type StepStatus,
-} from '~/ingest/steps';
+  loadListingImage,
+  ListingUnreadable,
+  normaliseUrl,
+  readListing,
+  type Listing,
+} from '~/ingest/listing';
+import { sourceById, type Source, type SourceId } from '~/ingest/sources';
+import { CATALOGUE_STEPS, type PipelineStep, type StepStatus } from '~/ingest/steps';
 
 export type Phase = 'idle' | 'running' | 'catalogue' | 'cutout' | 'nomatch' | 'error';
 
@@ -58,6 +61,8 @@ export interface AddItemFlow {
   statuses: StepStatus[];
   runningNote: string | undefined;
   cutout: CutoutResult | null;
+  /** The page a link path read, so the result card can cite it. */
+  listing: Listing | null;
   error: string | null;
   draft: Draft;
   setDraft: (draft: Draft) => void;
@@ -83,6 +88,7 @@ export function useAddItemFlow(): AddItemFlow {
   const [statuses, setStatuses] = useState<StepStatus[]>(PENDING);
   const [runningNote, setRunningNote] = useState<string | undefined>(undefined);
   const [cutout, setCutout] = useState<CutoutResult | null>(null);
+  const [listing, setListing] = useState<Listing | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
 
@@ -102,6 +108,7 @@ export function useAddItemFlow(): AddItemFlow {
     setStatuses(PENDING);
     setRunningNote(undefined);
     setCutout(null);
+    setListing(null);
     setError(null);
     setDraft(EMPTY_DRAFT);
   }, [clearTimers]);
@@ -115,7 +122,7 @@ export function useAddItemFlow(): AddItemFlow {
     [reset],
   );
 
-  /** The three catalogue paths: the real four-step shape, on fixed content. */
+  /** The two catalogue paths: the real four-step shape, on fixed content. */
   const runCatalogue = useCallback(() => {
     reset();
     setPhase('running');
@@ -138,6 +145,48 @@ export function useAddItemFlow(): AddItemFlow {
     );
   }, [reset]);
 
+  const fail = useCallback((caught: unknown, fallback: string) => {
+    setRunningNote(undefined);
+    setStatuses(PENDING);
+    setError(caught instanceof Error ? caught.message : fallback);
+    setPhase('error');
+  }, []);
+
+  /** A finished cut-out, plus the listing it came from when there was one. */
+  const succeed = useCallback((result: CutoutResult, found: Listing | null) => {
+    setStatuses(ALL_DONE);
+    setRunningNote(undefined);
+    setCutout(result);
+    setListing(found);
+    if (found) setDraft(draftFromListing(found));
+    setPhase('cutout');
+  }, []);
+
+  /**
+   * Runs the segmentation worker, writing its progress into the pipeline rows
+   * from `offset` on. The image drop reaches the model on row 1 and the link
+   * path on row 2, so the two paths share one driver rather than one each.
+   */
+  const cutoutFrom = useCallback((bitmap: ImageBitmap, offset: number) => {
+    const onProgress = ({ step, ratio }: CutoutProgress) => {
+      if (step === 'model') {
+        // Model download dominates the wait, so it gets a real percentage
+        // rather than the word "running".
+        setRunningNote(ratio >= 1 ? 'model ready' : `loading model ${Math.round(ratio * 100)}%`);
+        return;
+      }
+      setRunningNote(undefined);
+      const row = step === 'matte' ? 0 : step === 'trim' ? 1 : 2;
+      const index = Math.min(offset + row, PENDING.length - 1);
+      setStatuses((current) =>
+        current.map((status, i) =>
+          i < index ? 'done' : i === index ? (ratio >= 1 ? 'done' : 'running') : status,
+        ),
+      );
+    };
+    return runCutout(bitmap, onProgress);
+  }, []);
+
   /** The image drop: every step is real work in this browser. */
   const runImage = useCallback(
     async (input: File | string) => {
@@ -148,39 +197,56 @@ export function useAddItemFlow(): AddItemFlow {
       try {
         const bitmap = await loadBitmap(input);
         setStatuses(['done', 'running', 'pending', 'pending']);
-
-        const result = await runCutout(bitmap, ({ step, ratio }) => {
-          if (step === 'model') {
-            // Model download dominates the wait, so it gets a real percentage
-            // rather than the word "running".
-            setRunningNote(
-              ratio >= 1 ? 'model ready' : `loading model ${Math.round(ratio * 100)}%`,
-            );
-            return;
-          }
-          setRunningNote(undefined);
-          const index = step === 'matte' ? 1 : step === 'trim' ? 2 : 3;
-          setStatuses((current) =>
-            current.map((status, i) =>
-              i < index ? 'done' : i === index ? (ratio >= 1 ? 'done' : 'running') : status,
-            ),
-          );
-        });
-
-        setStatuses(ALL_DONE);
-        setRunningNote(undefined);
-        setCutout(result);
-        setPhase('cutout');
+        succeed(await cutoutFrom(bitmap, 1), null);
       } catch (caught) {
-        setRunningNote(undefined);
-        setStatuses(PENDING);
-        setError(
-          caught instanceof Error ? caught.message : 'That image could not be processed.',
-        );
-        setPhase('error');
+        fail(caught, 'That image could not be processed.');
       }
     },
-    [reset],
+    [cutoutFrom, fail, reset, succeed],
+  );
+
+  /**
+   * The pasted link: read what the page publishes about itself, pull the
+   * studio image that metadata points at, and cut it out here.
+   *
+   * A retailer that refuses every reader is not a failure of ours, so it does
+   * not get the error card — it gets the no-match card, which is already the
+   * designed route to dropping the image by hand.
+   */
+  const runLink = useCallback(
+    async (input: string) => {
+      reset();
+      setPhase('running');
+
+      let url: string;
+      try {
+        url = normaliseUrl(input);
+      } catch (caught) {
+        fail(caught, 'That is not a URL.');
+        return;
+      }
+
+      setStatuses(['running', 'pending', 'pending', 'pending']);
+      try {
+        const found = await readListing(url);
+        setStatuses(['done', 'running', 'pending', 'pending']);
+
+        const bitmap = await loadListingImage(found);
+        setStatuses(['done', 'done', 'running', 'pending']);
+
+        succeed(await cutoutFrom(bitmap, 2), found);
+      } catch (caught) {
+        if (caught instanceof ListingUnreadable) {
+          setRunningNote(undefined);
+          setStatuses(PENDING);
+          setError(caught.message);
+          setPhase('nomatch');
+          return;
+        }
+        fail(caught, 'That listing could not be read.');
+      }
+    },
+    [cutoutFrom, fail, reset, succeed],
   );
 
   const source = sourceById(sourceId);
@@ -192,22 +258,28 @@ export function useAddItemFlow(): AddItemFlow {
       setValue('');
       return;
     }
-    if (source.real) {
-      if (value.trim()) void runImage(value.trim());
+    const entered = value.trim();
+    if (source.id === 'link') {
+      if (entered) void runLink(entered);
+      return;
+    }
+    if (source.id === 'image') {
+      if (entered) void runImage(entered);
       return;
     }
     runCatalogue();
-  }, [phase, reset, runCatalogue, runImage, source.real, value]);
+  }, [phase, reset, runCatalogue, runImage, runLink, source.id, value]);
 
   return {
     source,
-    steps: source.real ? CUTOUT_STEPS : CATALOGUE_STEPS,
+    steps: source.steps,
     value,
     setValue,
     phase,
     statuses,
     runningNote,
     cutout,
+    listing,
     error,
     draft,
     setDraft,
@@ -215,7 +287,10 @@ export function useAddItemFlow(): AddItemFlow {
     submit,
     runImage: (input) => void runImage(input),
     reset,
-    showNoMatch: () => setPhase('nomatch'),
+    showNoMatch: () => {
+      setError(null);
+      setPhase('nomatch');
+    },
   };
 }
 
@@ -224,7 +299,12 @@ export function useAddItemFlow(): AddItemFlow {
  * fields are omitted rather than stored empty, so "no brand recorded" and
  * "brand recorded as nothing" stay distinguishable.
  */
-export function itemFromDraft(draft: Draft, cutout: CutoutResult, id: string): Item {
+export function itemFromDraft(
+  draft: Draft,
+  cutout: CutoutResult,
+  id: string,
+  source: Item['source'],
+): Item {
   const optional = (value: string) => (value.trim() ? { value: value.trim() } : null);
   const catalogue = {
     ...(optional(draft.brand) ? { brand: draft.brand.trim() } : {}),
@@ -247,6 +327,25 @@ export function itemFromDraft(draft: Draft, cutout: CutoutResult, id: string): I
     wornCount: 0,
     imageUrl: cutout.url,
     ...catalogue,
-    source: 'image',
+    source,
+  };
+}
+
+/**
+ * Seed the draft from what the listing said.
+ *
+ * Everything stays editable: the layer is a keyword guess, and a page's own
+ * copy is often looser than what the visitor would file it under.
+ */
+function draftFromListing(listing: Listing): Draft {
+  return {
+    ...EMPTY_DRAFT,
+    name: listing.name,
+    category: guessCategory(listing.name),
+    brand: listing.brand ?? '',
+    styleCode: listing.styleCode ?? '',
+    colourway: listing.colourway ?? '',
+    composition: listing.composition ?? '',
+    retail: listing.retail ?? '',
   };
 }
