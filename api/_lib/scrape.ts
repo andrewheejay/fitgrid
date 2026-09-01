@@ -1,3 +1,4 @@
+import { bodyWithin } from './outbound';
 import { DEFAULT_DAILY_SCRAPE_CAP } from './policy';
 
 /**
@@ -6,12 +7,10 @@ import { DEFAULT_DAILY_SCRAPE_CAP } from './policy';
  * Bot protection is the whole reason a server exists here: a plain fetch from
  * a data centre is refused by most large retailers regardless of headers, and
  * defeating that is a residential-proxy business, not a line of code. So one
- * is rented. The interface is three fields wide so swapping the vendor — or
+ * is rented. The interface is two fields wide so swapping the vendor — or
  * dropping the feature — touches this file and nothing else.
  */
 export interface Scraper {
-  /** Shown to nobody; it is what lands in the log as the outcome's detail. */
-  name: string;
   dailyCap: number;
   fetchHtml: (url: string, timeoutMs: number) => Promise<string>;
 }
@@ -23,7 +22,6 @@ export function scraper(): Scraper | null {
   const cap = Number(process.env['DAILY_SCRAPE_CAP'] ?? DEFAULT_DAILY_SCRAPE_CAP);
 
   return {
-    name: 'scrapingbee',
     dailyCap: Number.isFinite(cap) && cap > 0 ? cap : DEFAULT_DAILY_SCRAPE_CAP,
     async fetchHtml(url, timeoutMs) {
       const query = new URLSearchParams({
@@ -40,7 +38,9 @@ export function scraper(): Scraper | null {
         signal: AbortSignal.timeout(timeoutMs),
       });
       if (!response.ok) throw new Error(`scraper returned ${response.status}`);
-      return response.text();
+      // The proxy is relaying a page we do not control, so it gets the same
+      // ceiling a direct fetch does.
+      return new TextDecoder().decode(await bodyWithin(response));
     },
   };
 }

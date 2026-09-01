@@ -65,12 +65,13 @@ export function isBlockedAddress(address: string): boolean {
 
   if (ip.includes(':')) {
     if (ip === '::' || ip === '::1') return true;
-    // IPv4-mapped (::ffff:10.0.0.1) hides a v4 address inside a v6 literal.
-    // URL normalises that to hex — ::ffff:a9fe:a9fe — so both spellings of the
-    // same address have to be unpacked back to dotted quad.
-    const dotted = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(ip);
+    // An IPv4 address can hide inside a v6 literal two ways: mapped
+    // (::ffff:10.0.0.1) and the deprecated compatible form (::10.0.0.1).
+    // `URL` also rewrites the dotted quad to hex — ::ffff:a9fe:a9fe — so all
+    // four spellings have to come back to the same four octets.
+    const dotted = /^::(?:ffff:)?(\d{1,3}(?:\.\d{1,3}){3})$/.exec(ip);
     if (dotted?.[1]) return isBlockedAddress(dotted[1]);
-    const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(ip);
+    const hex = /^::(?:ffff:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(ip);
     if (hex?.[1] && hex[2]) {
       const high = parseInt(hex[1], 16);
       const low = parseInt(hex[2], 16);

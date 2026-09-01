@@ -1,7 +1,8 @@
 import { store } from './_lib/db';
+import { checkOutboundUrl } from './_lib/guard';
 import { clientKey, json } from './_lib/http';
 import { isOverLimit, retryAfterSeconds } from './_lib/policy';
-import { Refused, safeFetch } from './_lib/outbound';
+import { bodyWithin, Refused, safeFetch } from './_lib/outbound';
 
 /**
  * Hand the browser a studio photo it is not allowed to fetch for itself.
@@ -18,9 +19,20 @@ import { Refused, safeFetch } from './_lib/outbound';
 const TIMEOUT_MS = 10_000;
 const MAX_BYTES = 8 * 1024 * 1024;
 
-export default async function handler(request: Request): Promise<Response> {
-  const target = new URL(request.url).searchParams.get('url');
-  if (!target) return json({ error: 'url is required' }, 400);
+/*
+ * Exported as GET rather than as a default function: Vercel's Node runtime
+ * reads a default-exported *function* as the legacy (req, res) handler and
+ * would call this with an IncomingMessage, whose `url` is a bare path that
+ * `new URL()` refuses. A named method export is the Web-signature form, and it
+ * also says out loud that this endpoint answers one verb.
+ */
+export async function GET(request: Request): Promise<Response> {
+  const asked = new URL(request.url).searchParams.get('url');
+  if (!asked) return json({ error: 'url is required' }, 400);
+
+  // Same as the listing endpoint: refuse before spending a rate slot on it.
+  const verdict = checkOutboundUrl(asked);
+  if (!verdict.ok) return json({ error: verdict.reason }, 400);
 
   // Only for the counter — the image itself is not worth a row in the cache,
   // and the CDN header below is the caching that matters for it.
@@ -36,7 +48,7 @@ export default async function handler(request: Request): Promise<Response> {
 
   let response: Response;
   try {
-    response = await safeFetch(target, TIMEOUT_MS, { accept: 'image/*' });
+    response = await safeFetch(verdict.url.toString(), TIMEOUT_MS, { accept: 'image/*' });
   } catch (caught) {
     return json({ error: caught instanceof Refused ? caught.message : 'could not fetch' }, 400);
   }
@@ -45,8 +57,14 @@ export default async function handler(request: Request): Promise<Response> {
   const type = response.headers.get('content-type') ?? '';
   if (!type.startsWith('image/')) return json({ error: 'not an image' }, 415);
 
-  const body = await response.arrayBuffer();
-  if (body.byteLength > MAX_BYTES) return json({ error: 'image too large' }, 413);
+  let body: Uint8Array;
+  try {
+    // Counted as it arrives rather than measured afterwards: buffering the
+    // whole thing first is the failure this is meant to prevent.
+    body = await bodyWithin(response, MAX_BYTES);
+  } catch {
+    return json({ error: 'image too large' }, 413);
+  }
 
   return new Response(body, {
     headers: {

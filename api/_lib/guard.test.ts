@@ -25,8 +25,20 @@ describe('checkOutboundUrl', () => {
     expect(verdict.ok === false && verdict.reason).toBe(reason);
   });
 
-  it('refuses an IPv4 address smuggled inside an IPv6 literal', () => {
-    expect(checkOutboundUrl('http://[::ffff:169.254.169.254]/').ok).toBe(false);
+  it.each([
+    // Every spelling of the cloud metadata address that URL will accept.
+    'http://169.254.169.254/latest/meta-data/',
+    'http://[::ffff:169.254.169.254]/',
+    'http://[0:0:0:0:0:ffff:a9fe:a9fe]/',
+    'http://[::169.254.169.254]/',
+    // URL canonicalises these to 127.0.0.1 before the guard ever sees them,
+    // which is worth a test precisely because it is the parser's doing and
+    // not ours.
+    'http://2130706433/',
+    'http://0177.0.0.1/',
+    'http://0x7f.1/',
+  ])('refuses %s', (url) => {
+    expect(checkOutboundUrl(url).ok).toBe(false);
   });
 });
 
@@ -35,6 +47,9 @@ describe('isBlockedAddress', () => {
     '127.0.0.1', '10.1.2.3', '172.16.0.1', '172.31.255.255', '192.168.1.1',
     '169.254.169.254', '0.0.0.0', '100.64.0.1', '224.0.0.1', '::1', '::',
     'fc00::1', 'fe80::1', '::ffff:127.0.0.1', 'nonsense',
+    // The hex form URL rewrites a mapped address to, and the deprecated
+    // IPv4-compatible spelling, both of which reach the same four octets.
+    '::ffff:a9fe:a9fe', '::a9fe:a9fe', '::169.254.169.254',
   ])('blocks %s', (ip) => {
     expect(isBlockedAddress(ip)).toBe(true);
   });

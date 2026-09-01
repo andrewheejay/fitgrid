@@ -13,7 +13,8 @@ type HexTriple = [Hex, Hex, Hex];
  *
  * Licence note: RMBG-1.4 ships under BRIA's terms, which restrict commercial
  * use. This build is a non-commercial portfolio piece and attributes the model
- * in the UI; see docs/ for the recorded decision.
+ * in the UI. The terms have not been read line by line — R-01 in the spec is
+ * still open, and this comment is not the decision it asks for.
  */
 
 const MODEL_ID = 'briaai/RMBG-1.4';
@@ -38,7 +39,7 @@ const PADDING = 0.12;
  */
 const MAX_SIDE = 640;
 
-export type CutoutRequest = { image: ImageBitmap };
+type CutoutRequest = { image: ImageBitmap };
 
 export type CutoutResponse =
   | { type: 'progress'; step: CutoutStep; ratio: number }

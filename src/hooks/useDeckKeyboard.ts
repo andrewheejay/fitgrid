@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { DeckEvent } from '~/domain/deck';
 
-/** The six keys the deck binds. Each one preventDefault()s. */
+/** The seven keys the deck binds. Each one preventDefault()s. */
 function toEvent(key: string): DeckEvent | null {
   switch (key) {
     case 'ArrowLeft':

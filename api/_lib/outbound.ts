@@ -19,6 +19,13 @@ export class Refused extends Error {}
 
 const MAX_HOPS = 5;
 
+/**
+ * A product page is tens of kilobytes; a hundred times that is not a product
+ * page. `response.text()` would buffer whatever the other end sent, which on a
+ * function with a fixed memory ceiling is a way to be killed by a stranger.
+ */
+export const MAX_BODY_BYTES = 4 * 1024 * 1024;
+
 /** A shop that fingerprints clients answers a bare fetch with a challenge. */
 const BROWSERISH: Record<string, string> = {
   'user-agent':
@@ -67,4 +74,38 @@ async function assertPublicHost(hostname: string): Promise<void> {
   if (addresses.some(({ address }) => isBlockedAddress(address))) {
     throw new Refused('private address');
   }
+}
+
+/**
+ * Read a body, refusing one that will not fit. The declared length is checked
+ * first because it is free, and then the actual bytes are counted because it
+ * is a claim, not a promise.
+ */
+export async function bodyWithin(response: Response, maxBytes = MAX_BODY_BYTES): Promise<Uint8Array> {
+  const declared = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > maxBytes) throw new Refused('response too large');
+
+  const reader = response.body?.getReader();
+  if (!reader) return new Uint8Array();
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      throw new Refused('response too large');
+    }
+    chunks.push(value);
+  }
+
+  const body = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, at);
+    at += chunk.byteLength;
+  }
+  return body;
 }

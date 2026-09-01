@@ -37,6 +37,12 @@ type Sql = postgres.Sql;
  * before it exhausts anything of ours. `max: 1` because concurrency is per
  * container anyway — the platform starts another container, not another
  * connection.
+ *
+ * `connect_timeout` is short because it is spent before any of the request's
+ * real work: added to the fetch budgets in listing.ts it still has to fit
+ * inside the function's ceiling. `prepare: false` because a pooled connection
+ * string usually means pgbouncer in transaction mode, which has no place to
+ * keep a named statement.
  */
 let pool: Sql | null | undefined;
 
@@ -44,7 +50,7 @@ function connect(): Sql | null {
   if (pool !== undefined) return pool;
   const url = process.env['POSTGRES_URL'];
   pool = url
-    ? postgres(url, { max: 1, idle_timeout: 20, connect_timeout: 10, prepare: false })
+    ? postgres(url, { max: 1, idle_timeout: 20, connect_timeout: 5, prepare: false })
     : null;
   return pool;
 }
@@ -65,7 +71,14 @@ export function store(): Store | null {
     async save(url, listing) {
       await sql`
         insert into listing_cache (url, listing, fetched_at)
-        values (${url}, ${sql.json(listing as never)}, now())
+        values (
+          ${url},
+          -- The client's JSONValue wants an index signature, which a named
+          -- interface does not have. Every field on Listing is a string, so
+          -- this widening is a statement about the type system, not the value.
+          ${sql.json({ ...listing } as Record<string, string | undefined>)},
+          now()
+        )
         on conflict (url) do update
           set listing = excluded.listing, fetched_at = excluded.fetched_at
       `;
