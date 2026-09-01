@@ -101,7 +101,7 @@ export function normaliseUrl(input: string): string {
 }
 
 function toListing(fields: ListingFields, url: string, via: ReaderId): Listing | null {
-  if (!fields.name || !fields.imageUrl) return null;
+  if (!fields.name || !fields.imageUrl || isErrorPage(fields.name)) return null;
   return {
     url,
     name: fields.name,
@@ -224,8 +224,14 @@ export function parseProductHtml(html: string, pageUrl: string): ListingFields {
 
 /** microlink answers with a small, flat metadata object. */
 export function parseMicrolink(payload: Json, pageUrl: string): ListingFields {
-  const data = object(object(payload)?.['data']);
+  const root = object(payload);
+  const data = object(root?.['data']);
   if (!data) return {};
+
+  // The reader answering 200 says only that the reader is up. What the shop
+  // said is in statusCode, and it is often a 404 or a 403.
+  const upstream = Number(data['statusCode'] ?? root?.['statusCode'] ?? 200);
+  if (Number.isFinite(upstream) && (upstream < 200 || upstream >= 300)) return {};
 
   const title = str(data['title']);
   const image = str(object(data['image'])?.['url']);
@@ -235,6 +241,34 @@ export function parseMicrolink(payload: Json, pageUrl: string): ListingFields {
     imageUrl: image ? absolute(image, pageUrl) : undefined,
     brand: str(data['publisher']),
   });
+}
+
+const STATUS_WORD = 'not found|forbidden|error|denied|unauthorized|unavailable|bad request';
+
+const ERROR_PAGE = [
+  // A bare status, or one introducing an error phrase. Not any leading three
+  // digits: "501 Original Fit Jeans" is a Levi's, not a gateway failure.
+  /^[45]\d{2}\s*$/,
+  new RegExp(`^[45]\\d{2}\\b[\\s:|–—-]+(${STATUS_WORD})`, 'i'),
+  /\b(page )?not found\b/i,
+  /\baccess (to this page has been )?denied\b/i,
+  /\b(forbidden|unauthorized|service unavailable)\b/i,
+  /\battention required\b/i,
+  /\bjust a moment\b/i,
+  /\b(are you a (human|robot)|verify you are (a )?human|bot detection)\b/i,
+  /^(an )?error (has )?occurred\b/i,
+];
+
+/**
+ * Is this the title of a wall rather than a garment?
+ *
+ * A reader can answer 200 with a shop's 404 page or its bot-check interstitial,
+ * and those pages carry the shop's logo as their OpenGraph image — so "has a
+ * name and a picture" is not enough to call something a listing. Without this,
+ * a dead URL files Everlane's logo into the wardrobe as "404 Not Found".
+ */
+export function isErrorPage(name: string): boolean {
+  return ERROR_PAGE.some((pattern) => pattern.test(name.trim()));
 }
 
 /**

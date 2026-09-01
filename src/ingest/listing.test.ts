@@ -3,6 +3,7 @@ import {
   formatPrice,
   groupCode,
   imageCandidates,
+  isErrorPage,
   jsonLdProducts,
   metaTags,
   normaliseUrl,
@@ -183,6 +184,28 @@ describe('formatPrice', () => {
   });
 });
 
+describe('isErrorPage', () => {
+  it.each([
+    '404 Not Found',
+    'Page Not Found | Everlane',
+    'Access to this page has been denied',
+    'Access Denied',
+    'Attention Required! | Cloudflare',
+    'Just a moment...',
+    '403 Forbidden',
+  ])('rejects %s', (title) => {
+    expect(isErrorPage(title)).toBe(true);
+  });
+
+  it.each([
+    'Jet Black Classic Fleece Hoodie',
+    '501 Original Fit Jeans',
+    'Error Cotton Tee',
+  ])('keeps %s', (title) => {
+    expect(isErrorPage(title)).toBe(false);
+  });
+});
+
 describe('parseMicrolink', () => {
   it('reads the flat metadata payload', () => {
     const payload = {
@@ -202,6 +225,19 @@ describe('parseMicrolink', () => {
 
   it('returns nothing when the reader answered with an error', () => {
     expect(parseMicrolink({ status: 'fail' }, PAGE_URL)).toEqual({});
+  });
+
+  it('returns nothing when the shop answered 404 behind the reader', () => {
+    const payload = {
+      status: 'success',
+      data: {
+        statusCode: 404,
+        title: '404 Not Found',
+        publisher: 'Everlane',
+        image: { url: 'https://everlane.com/logo.png' },
+      },
+    };
+    expect(parseMicrolink(payload, 'https://www.everlane.com/products/gone')).toEqual({});
   });
 });
 
