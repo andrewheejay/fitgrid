@@ -13,7 +13,7 @@ export interface Weather {
  * browser's geolocation: a permission prompt on first load of a shared link is
  * hostile, and the design draws a specific city into the layout.
  */
-const CITY = { name: 'Berlin', latitude: 52.52, longitude: 13.405 };
+const CITY = { name: 'Philadelphia', latitude: 39.9526, longitude: -75.1652 };
 
 const FALLBACK: Weather = { summary: '11°C overcast', city: CITY.name };
 
