@@ -1,0 +1,78 @@
+/*
+ * The design system, verbatim from the handoff.
+ *
+ * This is the only file in the codebase permitted to contain a raw colour or a
+ * raw type size. Everything else refers to these names. If a value here is
+ * wrong, it is wrong in exactly one place.
+ */
+
+:root {
+  /* ---- Colour -------------------------------------------------------- */
+  --ink: #0a0a0a;           /* body text, primary fill, active tab, active rail border */
+  --ink-muted: #767676;     /* secondary text, inactive nav and tabs, body copy */
+  --ink-faint: #a8a8a8;     /* metadata labels, counts, timestamps, hints */
+  --rule: #e4e4e4;          /* structural borders: header, dividers, inputs */
+  --rule-light: #f0f0f0;    /* grid cell borders, table row separators */
+  --swatch-edge: #ececec;   /* border on garment image containers */
+  --surface: #ffffff;
+  --surface-sunken: #fbfbfb; /* left panels, cell hover, keycaps */
+
+  --navy: #053c5e;          /* accent: active underline, selection, hover, focus */
+  --teal: #1f7a8c;          /* success: completed steps, confidence, weather dot */
+  --red: #a31621;           /* lock state, destructive, no-match */
+  --red-bright: #db222a;    /* reserved; appears only inside garment palettes */
+  --pale-blue: #bfdbf7;     /* ::selection */
+
+  --dot-idle: #d4d4d4;      /* pending pipeline square, inactive rail square */
+  --dashed: #cfcfcf;        /* empty drop frames */
+  --separator: #c9c9c9;     /* the "/" in the weather chip */
+
+  /* ---- Type ---------------------------------------------------------- */
+  --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+
+  /*
+   * Never below 9px. Sizes are exact, not a scale — this design was drawn at
+   * half-pixel precision and rounding it to a scale visibly breaks the rhythm.
+   */
+  --t-wordmark: 13px;
+  --t-h1: 19px;
+  --t-detail-title: 26px;
+  --t-hero: 30px;
+  --t-match-name: 15px;
+  --t-garment-deck: 14px;
+  --t-garment: 12.5px;
+  --t-body: 12.5px;
+  --t-fit-row: 11.5px;
+  --t-input: 12px;
+  --t-input-sm: 11.5px;
+  --t-control: 10px;        /* nav, buttons, tabs, chips */
+  --t-meta: 9.5px;          /* metadata, field labels, table keys, keycaps */
+  --t-micro: 9px;           /* rail item names, lock pills */
+
+  --ls-wordmark: 0.18em;
+  --ls-control: 0.12em;
+  --ls-rail: 0.14em;
+  --ls-chip: 0.1em;
+  --ls-meta: 0.06em;
+  --ls-tight: -0.02em;
+  --ls-name: -0.005em;
+  --ls-loose: 0.08em;
+  --ls-hint: 0.04em;
+
+  --lh-body: 1.6;
+  --lh-hero: 1.25;
+  --lh-hint: 1.7;
+
+  /* ---- Geometry ------------------------------------------------------ */
+  /*
+   * Border radius is 0 everywhere. There is no --radius token because there is
+   * no radius; stylelint fails the build on `border-radius`. Structure comes
+   * entirely from 1px hairlines.
+   */
+  --hairline: 1px solid var(--rule);
+  --hairline-light: 1px solid var(--rule-light);
+  --gutter: 20px;
+  --panel-pad: 40px;
+  --header-h: 52px;
+}

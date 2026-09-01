@@ -1,0 +1,107 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  height: var(--header-h);
+  padding: 0 var(--gutter);
+  border-bottom: var(--hairline);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.wordmark {
+  font-family: var(--mono);
+  font-size: var(--t-wordmark);
+  font-weight: 500;
+  letter-spacing: var(--ls-wordmark);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.navItem {
+  font-family: var(--mono);
+  font-size: var(--t-control);
+  letter-spacing: var(--ls-control);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: 4px 2px;
+  margin-right: 16px;
+  border-bottom: 1px solid transparent;
+  transition: color 120ms, border-color 120ms;
+}
+
+.navItem:hover {
+  color: var(--ink);
+}
+
+.navActive {
+  color: var(--ink);
+  border-bottom-color: var(--navy);
+}
+
+.navActive:hover {
+  color: var(--ink);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.weather {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: var(--t-control);
+  letter-spacing: var(--ls-chip);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.weatherDot {
+  width: 6px;
+  height: 6px;
+  background: var(--teal);
+  flex: none;
+}
+
+.separator {
+  color: var(--separator);
+}
+
+/*
+ * The account slot. With no accounts in this build, the honest occupant is the
+ * one piece of state the visitor actually owns — what they have changed.
+ */
+.account {
+  font-family: var(--mono);
+  font-size: var(--t-control);
+  color: var(--ink-muted);
+  border: var(--hairline);
+  background: transparent;
+  padding: 5px 10px;
+  transition: color 120ms, border-color 120ms;
+}
+
+.account:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}

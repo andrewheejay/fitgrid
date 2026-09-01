@@ -1,0 +1,65 @@
+.button {
+  font-family: var(--mono);
+  font-size: var(--t-control);
+  letter-spacing: var(--ls-control);
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  transition: background-color 120ms, border-color 120ms, color 120ms;
+  white-space: nowrap;
+}
+
+.primary {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+
+.primary:hover {
+  background: var(--navy);
+  border-color: var(--navy);
+}
+
+.secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--rule);
+}
+
+.secondary:hover {
+  border-color: var(--ink);
+}
+
+.danger {
+  background: var(--surface);
+  color: var(--red);
+  border-color: var(--rule);
+}
+
+.danger:hover {
+  border-color: var(--red);
+}
+
+/* Bordered actions in the success and no-match cards invert on hover. */
+.invert {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.invert:hover {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.md {
+  padding: 9px 16px;
+}
+
+.lg {
+  padding: 11px 18px;
+}
+
+.block {
+  padding: 12px 16px;
+  width: 100%;
+}

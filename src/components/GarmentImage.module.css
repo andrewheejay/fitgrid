@@ -1,0 +1,30 @@
+.frame {
+  border: 1px solid var(--swatch-edge);
+  background-color: var(--surface);
+  width: 100%;
+  flex: none;
+}
+
+/*
+ * The striped placeholder from the handoff. It is kept deliberately rather than
+ * deleted once real photography exists: it is already the right visual answer
+ * for "no image yet", so it doubles as the loading and missing state.
+ */
+.placeholder {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--tone) 0 6px,
+    var(--surface) 6px 12px
+  );
+}
+
+.photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.square {
+  aspect-ratio: 1 / 1;
+}

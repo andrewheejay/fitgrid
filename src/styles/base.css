@@ -1,0 +1,61 @@
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--navy);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--teal);
+}
+
+::selection {
+  background: var(--pale-blue);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/*
+ * The prototype has no focus rings at all. This is the one place we
+ * deliberately exceed the reference: every interactive element gets a visible
+ * focus-visible treatment, in the accent, consistent with the hairline system.
+ */
+:focus-visible {
+  outline: 1px solid var(--navy);
+  outline-offset: 1px;
+}
+
+/* Motion is colour-only and under 150ms. The aesthetic depends on feeling like
+ * a document, not an app. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

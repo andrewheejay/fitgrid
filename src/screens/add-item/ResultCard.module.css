@@ -1,0 +1,128 @@
+.card {
+  border: 1px solid var(--ink);
+  padding: 18px;
+  margin-top: 26px;
+  max-width: 56ch;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  letter-spacing: var(--ls-control);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.name {
+  font-size: var(--t-match-name);
+  margin-top: 5px;
+}
+
+.pill {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-control);
+  text-transform: uppercase;
+  padding: 4px 8px;
+  white-space: nowrap;
+  flex: none;
+}
+
+.pillMatch {
+  border: 1px solid var(--teal);
+  color: var(--teal);
+}
+
+.pillCutout {
+  border: 1px solid var(--navy);
+  color: var(--navy);
+}
+
+.table {
+  margin-top: 14px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.tag {
+  border: var(--hairline);
+  padding: 5px 9px;
+  font-family: var(--mono);
+  font-size: var(--t-control);
+  letter-spacing: var(--ls-meta);
+  color: var(--ink);
+}
+
+.swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  vertical-align: baseline;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+  border-top: var(--hairline-light);
+  padding-top: 16px;
+}
+
+.field {
+  min-width: 0;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.label {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  letter-spacing: var(--ls-control);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.input {
+  width: 100%;
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: var(--t-input);
+  padding: 11px 12px;
+  border: var(--hairline);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--navy);
+}
+
+/* The name is human-named, so it is typed in sans, not mono. */
+.inputName {
+  font-family: var(--sans);
+  font-size: var(--t-body);
+}

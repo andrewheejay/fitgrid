@@ -1,0 +1,32 @@
+.dialog {
+  border: 1px solid var(--red);
+  padding: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  max-width: 46ch;
+}
+
+.dialog::backdrop {
+  background: rgba(10, 10, 10, 0.28);
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  letter-spacing: var(--ls-control);
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+.body {
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
+  color: var(--ink-muted);
+  margin-top: 10px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}

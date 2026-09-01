@@ -1,0 +1,59 @@
+/* Filter and sort chips: selected fills a faint grey and takes an ink hairline. */
+.chip {
+  font-family: var(--mono);
+  font-size: var(--t-control);
+  letter-spacing: var(--ls-chip);
+  text-transform: uppercase;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-muted);
+  transition: background-color 120ms, border-color 120ms, color 120ms;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  color: var(--ink);
+}
+
+.selected {
+  background: #f2f2f2;
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.count {
+  color: var(--ink-faint);
+  margin-left: 6px;
+}
+
+.selected .count {
+  color: var(--ink-faint);
+}
+
+/* Mode and source tabs: active inverts to an ink fill. */
+.tab {
+  font-family: var(--mono);
+  font-size: var(--t-control);
+  letter-spacing: var(--ls-control);
+  text-transform: uppercase;
+  padding: 6px 11px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  transition: background-color 120ms, color 120ms;
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.tabActive {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.tabActive:hover {
+  color: var(--surface);
+}

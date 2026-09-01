@@ -1,0 +1,53 @@
+.pipeline {
+  border-top: var(--hairline);
+  margin-top: 26px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: var(--hairline-light);
+  opacity: 0.45;
+}
+
+.active {
+  opacity: 1;
+}
+
+.square {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  background: var(--dot-idle);
+}
+
+.running {
+  background: var(--red);
+}
+
+.done {
+  background: var(--teal);
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: var(--t-control);
+  letter-spacing: var(--ls-chip);
+  text-transform: uppercase;
+  flex: none;
+}
+
+/* The note column clips rather than wraps — it is a status line, not copy. */
+.note {
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  color: var(--ink-faint);
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}

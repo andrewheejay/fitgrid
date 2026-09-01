@@ -1,0 +1,132 @@
+.rail {
+  padding: 16px 16px 18px;
+  border: var(--hairline);
+  background: #fcfcfc;
+}
+
+.railActive {
+  border-color: var(--ink);
+  background: var(--surface);
+}
+
+.dim {
+  opacity: 0.4;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.headLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.square {
+  width: 6px;
+  height: 6px;
+  background: var(--dot-idle);
+  flex: none;
+}
+
+.squareActive {
+  background: var(--navy);
+}
+
+.layer {
+  font-family: var(--mono);
+  font-size: var(--t-control);
+  letter-spacing: var(--ls-rail);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.counter {
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  color: var(--ink-faint);
+}
+
+.lock {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-control);
+  text-transform: uppercase;
+  padding: 5px 9px;
+  background: var(--surface);
+  border: var(--hairline);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  transition: border-color 120ms, color 120ms;
+}
+
+.lock:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.lockOn {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--surface);
+}
+
+.lockOn:hover {
+  color: var(--surface);
+  border-color: var(--red);
+}
+
+.strip {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.option {
+  flex: 1;
+  min-width: 0;
+  padding: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  text-align: left;
+  transition: border-color 120ms;
+}
+
+.optionSelected {
+  border-color: var(--navy);
+}
+
+.optionName {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+  margin-top: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.optionNameSelected {
+  color: var(--ink);
+}
+
+/* The "no outer layer" option keeps the image slot's footprint. */
+.none {
+  height: 74px;
+  border: 1px dashed var(--dashed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.noneMark {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+}

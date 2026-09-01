@@ -1,0 +1,24 @@
+.table {
+  border-top: var(--hairline);
+}
+
+.row {
+  display: grid;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: var(--hairline-light);
+  align-items: baseline;
+}
+
+.key {
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  letter-spacing: var(--ls-chip);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.value {
+  font-size: var(--t-body);
+  color: var(--ink);
+}
