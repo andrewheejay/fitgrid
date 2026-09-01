@@ -10,7 +10,7 @@ import {
   parseMicrolink,
   parseProductHtml,
   stripSiteSuffix,
-} from './listing';
+} from './parse';
 
 const PAGE_URL = 'https://www.pacsun.com/fear-of-god-essentials/jet-black-hoodie.html';
 

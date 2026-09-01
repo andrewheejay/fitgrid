@@ -1,5 +1,12 @@
-import { loadBitmap } from './cutout';
-
+/**
+ * Reading a product page's own metadata — pure, and deliberately so.
+ *
+ * Nothing here touches the network, the DOM or any Node API, so the identical
+ * parser runs in the browser's reader chain and in the serverless function.
+ * One implementation, one set of tests, two runtimes. That is also why the
+ * scraping is done with regexes rather than DOMParser, which exists in only
+ * one of them.
+ */
 /**
  * Where a listing's metadata came from.
  *
@@ -56,33 +63,6 @@ export interface ListingFields {
  */
 export class ListingUnreadable extends Error {}
 
-/**
- * Read a product page.
- *
- * Readers are tried in order and the first that yields both a name and an
- * image wins. Coverage is genuinely partial: a shop that refuses all four is a
- * dead end here, which is what the no-match card is for.
- */
-export async function readListing(url: string): Promise<Listing> {
-  const pageUrl = normaliseUrl(url);
-
-  for (const reader of READERS) {
-    let fields: ListingFields;
-    try {
-      fields = await reader.run(pageUrl, reader.timeoutMs);
-    } catch {
-      continue;
-    }
-    const listing = toListing(fields, pageUrl, reader.id);
-    if (listing) return listing;
-  }
-
-  throw new ListingUnreadable(
-    'That shop would not let Fitgrid read the page — most big retailers block ' +
-      'automated readers.',
-  );
-}
-
 /** Rejects anything that is not an http(s) page before any request goes out. */
 export function normaliseUrl(input: string): string {
   const trimmed = input.trim();
@@ -100,7 +80,7 @@ export function normaliseUrl(input: string): string {
   return parsed.toString();
 }
 
-function toListing(fields: ListingFields, url: string, via: ReaderId): Listing | null {
+export function toListing(fields: ListingFields, url: string, via: ReaderId): Listing | null {
   if (!fields.name || !fields.imageUrl || isErrorPage(fields.name)) return null;
   return {
     url,
@@ -113,72 +93,6 @@ function toListing(fields: ListingFields, url: string, via: ReaderId): Listing |
     ...(fields.composition ? { composition: fields.composition } : {}),
     ...(fields.retail ? { retail: fields.retail } : {}),
   };
-}
-
-/* -------------------------------------------------------------------------- */
-/* Readers                                                                     */
-/* -------------------------------------------------------------------------- */
-
-interface Reader {
-  id: ReaderId;
-  /**
-   * Its own budget, because the whole chain runs in front of a visitor. A
-   * reader that has not answered inside this is treated as a refusal — a
-   * public endpoint having a bad afternoon should cost the next one its turn,
-   * not the whole run.
-   */
-  timeoutMs: number;
-  run: (url: string, timeoutMs: number) => Promise<ListingFields>;
-}
-
-const READERS: readonly Reader[] = [
-  {
-    id: 'direct',
-    timeoutMs: 8_000,
-    run: async (url, timeoutMs) => parseProductHtml(await text(url, timeoutMs), url),
-  },
-  {
-    id: 'jina',
-    // Asked for the page's markup rather than its reader-friendly prose,
-    // because the markup is where schema.org data lives.
-    timeoutMs: 15_000,
-    run: async (url, timeoutMs) =>
-      parseProductHtml(
-        await text(`https://r.jina.ai/${url}`, timeoutMs, { 'x-return-format': 'html' }),
-        url,
-      ),
-  },
-  {
-    id: 'allorigins',
-    timeoutMs: 10_000,
-    run: async (url, timeoutMs) =>
-      parseProductHtml(
-        await text(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, timeoutMs),
-        url,
-      ),
-  },
-  {
-    id: 'microlink',
-    // Last: it answers with a title and an image and nothing else, so a
-    // listing it resolves arrives without brand, SKU or price.
-    timeoutMs: 15_000,
-    run: async (url, timeoutMs) =>
-      parseMicrolink(
-        JSON.parse(
-          await text(`https://api.microlink.io/?url=${encodeURIComponent(url)}`, timeoutMs),
-        ) as Json,
-        url,
-      ),
-  },
-];
-
-async function text(url: string, timeoutMs: number, headers?: HeadersInit): Promise<string> {
-  const response = await fetch(url, {
-    signal: AbortSignal.timeout(timeoutMs),
-    ...(headers ? { headers } : {}),
-  });
-  if (!response.ok) throw new Error(`Reader returned ${response.status}`);
-  return response.text();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -270,45 +184,6 @@ const ERROR_PAGE = [
 export function isErrorPage(name: string): boolean {
   return ERROR_PAGE.some((pattern) => pattern.test(name.trim()));
 }
-
-/**
- * CORS-safe ways to read the same image.
- *
- * The cut-out reads pixels back off a canvas, which a cross-origin image only
- * permits with the right headers. Most product CDNs send them; the proxies
- * cover the ones that do not.
- */
-export function imageCandidates(imageUrl: string): string[] {
-  const bare = imageUrl.replace(/^https?:\/\//, '');
-  return [
-    imageUrl,
-    `https://images.weserv.nl/?url=${encodeURIComponent(bare)}&output=png&n=-1`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`,
-  ];
-}
-
-const IMAGE_TIMEOUT_MS = 6_000;
-
-/**
- * Try each CORS route in turn; the listing is only usable if one works.
- *
- * A shop can publish a perfectly good listing and still refuse everyone the
- * pixels — Uniqlo does exactly that — so this fails the same way an unreadable
- * page does, and lands on the same card.
- */
-export async function loadListingImage(listing: Listing): Promise<ImageBitmap> {
-  for (const candidate of imageCandidates(listing.imageUrl)) {
-    try {
-      return await loadBitmap(candidate, IMAGE_TIMEOUT_MS);
-    } catch {
-      // Each route fails for its own reason; only the last one is news.
-    }
-  }
-  throw new ListingUnreadable(
-    `Fitgrid read the listing, but ${hostname(listing.url)} would not hand over the photo.`,
-  );
-}
-
 /** The shop, as a person would name it. */
 export function hostname(url: string): string {
   try {
@@ -544,4 +419,20 @@ function decodeEntities(value: string): string {
     }
     return NAMED_ENTITIES[body.toLowerCase()] ?? whole;
   });
+}
+
+/**
+ * CORS-safe ways to read the same image.
+ *
+ * The cut-out reads pixels back off a canvas, which a cross-origin image only
+ * permits with the right headers. Most product CDNs send them; the proxies
+ * cover the ones that do not.
+ */
+export function imageCandidates(imageUrl: string): string[] {
+  const bare = imageUrl.replace(/^https?:\/\//, '');
+  return [
+    imageUrl,
+    `https://images.weserv.nl/?url=${encodeURIComponent(bare)}&output=png&n=-1`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`,
+  ];
 }
