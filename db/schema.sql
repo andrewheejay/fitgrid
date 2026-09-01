@@ -16,14 +16,17 @@ create table if not exists listing_cache (
 -- the day's scraper calls are counted straight off this table, which is how
 -- the paid API's budget is enforced.
 create table if not exists ingest_log (
-  id      bigserial   primary key,
-  host    text        not null,
-  outcome text        not null,
-  ms      integer     not null,
-  at      timestamptz not null default now()
+  id        bigserial   primary key,
+  host      text        not null,
+  outcome   text        not null,
+  ms        integer     not null,
+  logged_at timestamptz not null default now()
 );
 
-create index if not exists ingest_log_scrapes on ingest_log (at) where outcome = 'scraper';
+-- Partial, because the only query over this table is "how many scraper calls
+-- today" and the day's rows are a small slice of the whole.
+create index if not exists ingest_log_scrapes
+  on ingest_log (logged_at) where outcome = 'scraper';
 
 -- A fixed window per client, rolled over in SQL so two concurrent requests
 -- cannot both read the same count and both decide they are under the limit.

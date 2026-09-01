@@ -20,7 +20,7 @@ two product changes to build rather than restyle.
 | **Components** | A token layer (`src/styles/tokens.css`) and shared primitives — buttons, chips, spec tables, cards — reused across six screens. `border-radius` and raw colours outside `tokens.css` both fail `npm run lint`, because the design has no rounded corners and one hard-coded hex is how a token system starts dying. |
 | **Animations** | The deck's reshuffle, the rail's selection travel, and the ingest pipeline's per-step progress, all driven from state rather than timers where the state exists. |
 | **API calls** | Live weather from Open-Meteo. Live product-page reads from whichever of five readers a given shop tolerates. |
-| **Database integration** | Postgres behind two serverless functions: a listing cache, a rate-limit window rolled over in SQL, and an ingest log that the daily spend cap is counted off. Schema in `db/schema.sql`. |
+| **Database integration** | Postgres behind two serverless functions: a listing cache, a rate-limit window rolled over in SQL, and an ingest log that the daily spend cap is counted off. Schema in `db/schema.sql`, statements in `api/_lib/sql.ts`, and both are tested against a real Postgres — PGlite compiles it to WebAssembly, so `npm test` runs the actual SQL with nothing installed. |
 | **Classes and objects** | The domain layer is plain TypeScript with no framework in it — `domain/deck.ts` is an explicit `reduce(state, event, pools)` state machine, `domain/rail.ts` is a pure windowing function, and both are tested directly. |
 | **Full-stack** | The React app and the `api/` functions share one parser (`src/ingest/listing/parse.ts`), imported by both and tested once. |
 | **Deployment** | Vercel — static bundle plus two Node functions. |

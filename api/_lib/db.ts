@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import type { Listing } from '../../src/ingest/listing/parse';
 import { RATE_WINDOW_MS, type RateWindow } from './policy';
+import { CACHED_LISTING, LOG_INGEST, SAVE_LISTING, SCRAPES_TODAY, TAKE_SLOT } from './sql';
 
 /**
  * The three tables, behind five methods.
@@ -61,66 +62,33 @@ export function store(): Store | null {
 
   return {
     async cached(url) {
-      const rows = await sql<{ listing: Listing; fetched_at: Date }[]>`
-        select listing, fetched_at from listing_cache where url = ${url}
-      `;
+      const rows = await sql.unsafe<{ listing: Listing; fetched_at: Date }[]>(CACHED_LISTING, [url]);
       const row = rows[0];
       return row ? { listing: row.listing, fetchedAt: row.fetched_at.getTime() } : null;
     },
 
     async save(url, listing) {
-      await sql`
-        insert into listing_cache (url, listing, fetched_at)
-        values (
-          ${url},
-          -- The client's JSONValue wants an index signature, which a named
-          -- interface does not have. Every field on Listing is a string, so
-          -- this widening is a statement about the type system, not the value.
-          ${sql.json({ ...listing } as Record<string, string | undefined>)},
-          now()
-        )
-        on conflict (url) do update
-          set listing = excluded.listing, fetched_at = excluded.fetched_at
-      `;
+      await sql.unsafe(SAVE_LISTING, [url, JSON.stringify(listing)]);
     },
 
     async log(host, outcome, ms) {
-      await sql`insert into ingest_log (host, outcome, ms) values (${host}, ${outcome}, ${ms})`;
+      await sql.unsafe(LOG_INGEST, [host, outcome, ms]);
     },
 
-    /**
-     * The window rolls over inside the statement rather than in JavaScript.
-     * Read-then-write would let two requests read the same count and both
-     * conclude they were under the limit, which is precisely the case a rate
-     * limiter exists for.
-     */
     async takeSlot(client) {
-      const cutoff = `${RATE_WINDOW_MS} milliseconds`;
-      const rows = await sql<{ count: number; started_at: Date }[]>`
-        insert into rate_window (client, count, started_at)
-        values (${client}, 1, now())
-        on conflict (client) do update set
-          count = case
-            when rate_window.started_at < now() - ${cutoff}::interval then 1
-            else rate_window.count + 1
-          end,
-          started_at = case
-            when rate_window.started_at < now() - ${cutoff}::interval then now()
-            else rate_window.started_at
-          end
-        returning count, started_at
-      `;
+      const rows = await sql.unsafe<{ count: number; started_at: Date }[]>(TAKE_SLOT, [
+        client,
+        RATE_WINDOW_MS / 1000,
+      ]);
       const row = rows[0];
       // The insert always returns a row; the fallback keeps the type honest.
       return row
-        ? { count: row.count, startedAt: row.started_at.getTime() }
+        ? { count: Number(row.count), startedAt: row.started_at.getTime() }
         : { count: 1, startedAt: Date.now() };
     },
 
     async scrapesToday() {
-      const rows = await sql<{ count: string }[]>`
-        select count(*) from ingest_log where outcome = 'scraper' and at > now() - interval '1 day'
-      `;
+      const rows = await sql.unsafe<{ count: string }[]>(SCRAPES_TODAY, []);
       return Number(rows[0]?.count ?? 0);
     },
   };
