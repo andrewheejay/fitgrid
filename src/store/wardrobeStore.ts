@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createLocalRepository } from '~/data/localRepository';
 import {
@@ -74,4 +75,10 @@ export const useWardrobe = createWardrobeStore(createLocalRepository());
 
 export function useItem(id: ItemId | undefined): Item | undefined {
   return useWardrobe((state) => state.items.find((item) => item.id === id));
+}
+
+/** Both screens that render a saved fit need to look its members up by id. */
+export function useItemsById(): Map<ItemId, Item> {
+  const items = useWardrobe((state) => state.items);
+  return useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
 }

@@ -4,11 +4,10 @@ import { Button } from '~/components/Button';
 import { Tab } from '~/components/Chip';
 import { lockedCount, selectedIds, type DeckEffect, type DeckMode } from '~/domain/deck';
 import { flashMessage } from '~/domain/flash';
-import type { Item, ItemId } from '~/domain/items';
 import { LAYERS, layerAt, layerName } from '~/domain/layers';
 import { outfitFromSelection, poolsFrom } from '~/domain/outfits';
 import { useDeckKeyboard } from '~/hooks/useDeckKeyboard';
-import { useWardrobe } from '~/store/wardrobeStore';
+import { useItemsById, useWardrobe } from '~/store/wardrobeStore';
 import { DeckRail } from './DeckRail';
 import styles from './DeckScreen.module.css';
 import { FitStack } from './FitStack';
@@ -30,10 +29,7 @@ export function DeckScreen() {
   const { lock } = useSearch({ from: '/deck' });
 
   const pools = useMemo(() => poolsFrom(items), [items]);
-  const itemsById = useMemo(
-    () => new Map<ItemId, Item>(items.map((item) => [item.id, item])),
-    [items],
-  );
+  const itemsById = useItemsById();
 
   /*
    * "Lock into a fit" arrives with an item id; find where it sits in its pool.
@@ -50,7 +46,6 @@ export function DeckScreen() {
 
   const onEffect = useCallback(
     (effect: DeckEffect) => {
-      if (effect.type !== 'saveFit') return;
       const outfit = outfitFromSelection(selectedIds(effect.selection, pools), {
         id: crypto.randomUUID(),
         name: 'Untitled fit',

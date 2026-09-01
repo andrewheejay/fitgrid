@@ -24,7 +24,7 @@ interface UseDeckResult {
  */
 export function useDeck(
   pools: DeckPools,
-  onEffect: (effect: DeckEffect, state: DeckState) => void,
+  onEffect: (effect: DeckEffect) => void,
   options: DeckStateOptions = {},
 ): UseDeckResult {
   const [state, setState] = useState<DeckState>(() => initialDeckState(options));
@@ -41,7 +41,7 @@ export function useDeck(
     const [next, effects] = reduce(stateRef.current, event, poolsRef.current);
     stateRef.current = next;
     setState(next);
-    for (const effect of effects) onEffectRef.current(effect, next);
+    for (const effect of effects) onEffectRef.current(effect);
   }, []);
 
   // A flash clears itself; a new message restarts the countdown, which is what

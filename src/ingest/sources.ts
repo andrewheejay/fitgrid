@@ -1,6 +1,12 @@
+import type { ItemSource } from '~/domain/items';
 import { CATALOGUE_STEPS, CUTOUT_STEPS, LINK_STEPS, type PipelineStep } from './steps';
 
-export type SourceId = 'label' | 'link' | 'receipt' | 'image';
+/**
+ * The same four the domain records on an item, and deliberately the same type:
+ * a tab the visitor picked is what gets stored as where the garment came from,
+ * so a fifth tab cannot be added without the domain hearing about it.
+ */
+export type SourceId = ItemSource;
 
 export interface Source {
   id: SourceId;

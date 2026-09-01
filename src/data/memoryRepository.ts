@@ -1,8 +1,8 @@
-import { emptyOverlay, type Overlay } from './overlay';
+import { emptyOverlay } from './overlay';
 import type { WardrobeRepository } from './repository';
 
-export function createMemoryRepository(initial: Overlay = emptyOverlay()): WardrobeRepository {
-  let overlay = initial;
+export function createMemoryRepository(): WardrobeRepository {
+  let overlay = emptyOverlay();
   return {
     load: () => overlay,
     save: (next) => {

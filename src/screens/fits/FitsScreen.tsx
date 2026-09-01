@@ -1,21 +1,16 @@
 import { useNavigate } from '@tanstack/react-router';
-import { useMemo } from 'react';
 import { Button } from '~/components/Button';
 import { GarmentImage } from '~/components/GarmentImage';
 import type { Item, ItemId } from '~/domain/items';
 import { formatShortDate } from '~/domain/date';
 import { layersOf, type Outfit } from '~/domain/outfits';
-import { useWardrobe } from '~/store/wardrobeStore';
+import { useItemsById, useWardrobe } from '~/store/wardrobeStore';
 import styles from './FitsScreen.module.css';
 
 export function FitsScreen() {
   const outfits = useWardrobe((state) => state.outfits);
-  const items = useWardrobe((state) => state.items);
   const navigate = useNavigate();
-  const itemsById = useMemo(
-    () => new Map<ItemId, Item>(items.map((item) => [item.id, item])),
-    [items],
-  );
+  const itemsById = useItemsById();
 
   return (
     <main>
