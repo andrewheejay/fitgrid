@@ -2,7 +2,11 @@ import type { Hex } from '~/domain/items';
 import type { CutoutResponse, CutoutStep } from './worker/cutout.worker';
 
 export interface CutoutResult {
-  /** Object URL for the trimmed, centred cut-out. */
+  /**
+   * A data URL, not an object URL. The cut-out is persisted with its item, and
+   * an object URL dies with the page that created it — which would leave a
+   * saved garment pointing at a broken image after one reload.
+   */
   url: string;
   palette: [Hex, Hex, Hex];
 }
@@ -43,9 +47,10 @@ export function runCutout(
         finish(() => reject(new Error(message.message)));
         return;
       }
-      finish(() =>
-        resolve({ url: URL.createObjectURL(message.blob), palette: message.palette }),
-      );
+      const { blob, palette } = message;
+      finish(() => {
+        void toDataUrl(blob).then((url) => resolve({ url, palette }));
+      });
     };
 
     worker.onerror = (event) => {
@@ -53,6 +58,15 @@ export function runCutout(
     };
 
     worker.postMessage({ image: bitmap }, [bitmap]);
+  });
+}
+
+function toDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('The cut-out could not be encoded'));
+    reader.readAsDataURL(blob);
   });
 }
 

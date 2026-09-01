@@ -27,6 +27,13 @@ type MaskTensor = Array<{ mul: (value: number) => { to: (dtype: string) => Tenso
 /** Padding around the trimmed garment, as a fraction of the canvas. */
 const PADDING = 0.12;
 
+/**
+ * The cut-out is stored in the browser as a data URL, so it has to stay small.
+ * 640px is comfortably above the largest place it is displayed (420px on item
+ * detail) at 1.5x.
+ */
+const MAX_SIDE = 640;
+
 export type CutoutRequest = { image: ImageBitmap };
 
 export type CutoutResponse =
@@ -109,7 +116,7 @@ self.onmessage = async (event: MessageEvent<CutoutRequest>) => {
     const palette = dominantColours(pixels.data);
     post({ type: 'progress', step: 'palette', ratio: 1 });
 
-    const blob = await trimmed.convertToBlob({ type: 'image/png' });
+    const blob = await trimmed.convertToBlob({ type: 'image/webp', quality: 0.9 });
     post({ type: 'done', blob, palette });
   } catch (error) {
     post({
@@ -158,12 +165,18 @@ function alphaBounds(data: Uint8ClampedArray, width: number, height: number): Bo
 function centreOnSquare(source: OffscreenCanvas, box: Box): OffscreenCanvas {
   const width = box.right - box.left + 1;
   const height = box.bottom - box.top + 1;
-  const side = Math.max(width, height);
-  const canvasSide = Math.round(side / (1 - PADDING * 2));
+  const longestEdge = Math.max(width, height);
+  const canvasSide = Math.round(longestEdge / (1 - PADDING * 2));
 
-  const output = new OffscreenCanvas(canvasSide, canvasSide);
+  const side = Math.min(canvasSide, MAX_SIDE);
+  const scale = side / canvasSide;
+
+  const output = new OffscreenCanvas(side, side);
   const context = output.getContext('2d');
   if (!context) return output;
+
+  const drawWidth = Math.round(width * scale);
+  const drawHeight = Math.round(height * scale);
 
   context.drawImage(
     source,
@@ -171,10 +184,10 @@ function centreOnSquare(source: OffscreenCanvas, box: Box): OffscreenCanvas {
     box.top,
     width,
     height,
-    Math.round((canvasSide - width) / 2),
-    Math.round((canvasSide - height) / 2),
-    width,
-    height,
+    Math.round((side - drawWidth) / 2),
+    Math.round((side - drawHeight) / 2),
+    drawWidth,
+    drawHeight,
   );
   return output;
 }

@@ -100,6 +100,10 @@ than invented, and are the first thing to design properly.
   headers cannot be read back off a canvas; dropping the file always works.
 - **The segmentation model is several megabytes**, fetched on first use of that
   tab only. It never touches first paint.
+- **Cut-outs are stored in `localStorage` as WebP data URLs**, capped at 640px.
+  That is durable across reloads but not unbounded — a wardrobe of many
+  self-added garments would eventually hit the storage quota, at which point
+  IndexedDB is the right home for them.
 
 ## Credits
 
