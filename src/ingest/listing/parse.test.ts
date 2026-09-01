@@ -253,9 +253,10 @@ describe('normaliseUrl', () => {
 });
 
 describe('imageCandidates', () => {
-  it('tries the origin first, then the CORS proxies', () => {
-    const [origin, weserv, proxy] = imageCandidates('https://img.example.com/a.jpg?w=2000');
+  it('tries the origin, then our endpoint, then the CORS proxies', () => {
+    const [origin, own, weserv, proxy] = imageCandidates('https://img.example.com/a.jpg?w=2000');
     expect(origin).toBe('https://img.example.com/a.jpg?w=2000');
+    expect(own).toBe(`/api/image?url=${encodeURIComponent('https://img.example.com/a.jpg?w=2000')}`);
     expect(weserv).toContain('images.weserv.nl');
     expect(weserv).toContain(encodeURIComponent('img.example.com/a.jpg?w=2000'));
     expect(proxy).toContain('allorigins.win');

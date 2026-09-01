@@ -55,6 +55,20 @@ interface Reader {
 
 const READERS: readonly Reader[] = [
   {
+    id: 'server',
+    // The longest budget in the chain, because it is the only reader that may
+    // rent a residential proxy: it is slow when it works and the only one that
+    // works at all on the shops that block everyone else. Absent locally,
+    // where it answers 503 in a millisecond and costs nothing.
+    timeoutMs: 26_000,
+    run: async (url, timeoutMs) => {
+      const body = JSON.parse(
+        await text(`/api/listing?url=${encodeURIComponent(url)}`, timeoutMs),
+      ) as { listing?: ListingFields };
+      return body.listing ?? {};
+    },
+  },
+  {
     id: 'direct',
     timeoutMs: 8_000,
     run: async (url, timeoutMs) => parseProductHtml(await text(url, timeoutMs), url),

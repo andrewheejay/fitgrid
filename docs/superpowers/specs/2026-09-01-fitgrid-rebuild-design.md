@@ -418,8 +418,14 @@ that table twice. This is a deliberate, accepted cost, not an oversight.
 
 ## 10. Delivery
 
-Static build deployed to Cloudflare Pages. GitHub Actions runs typecheck, lint,
-unit tests and Playwright on every push.
+Deployed to Vercel: the Vite bundle as static assets, plus two serverless
+functions under `api/`. GitHub Actions runs typecheck, lint, unit tests and
+Playwright on every push.
+
+The functions are optional at runtime, not merely optional in development.
+Without `POSTGRES_URL` they answer 503, and 503 is a status the browser's own
+reader chain already treats as "try the next one" — so a checkout with no
+secrets configured behaves exactly as the static build did. See D-12.
 
 The repository README carries a decisions log — what was cut from the handoff
 and why. For this audience that document is read before the code.
@@ -440,6 +446,7 @@ and why. For this audience that document is read before the code.
 | D-08 | **Saved fits reopen in the deck, fully locked.** | The handoff leaves this open ("reload it into the deck, or a detail view"). Reloading locked reuses the whole deck screen and matches what wearing a saved fit again means. |
 | D-09 | **Build, run, then test.** | User decision. Tradeoff recorded in §9. |
 | D-11 | **"Paste link" reads the page instead of simulating a catalogue.** Supersedes D-05 for that path only. | D-05 assumed the link path needed the same product database as the label and the order email. It does not: a product page publishes name, brand, style code, colourway, composition, price and its studio photograph about itself, in schema.org `Product` markup and OpenGraph tags, and the cut-out pipeline already existed to take the photo. What it cannot do is resolve a SKU the page never stated, so the pipeline rows claim reading, not matching. Coverage is partial by nature — bot protection refuses an automated request at most large retailers, and which reader a shop tolerates does not generalise — so four readers are tried in order and a refusal lands on the existing no-match card rather than a new failure state. See R-05. |
+| D-12 | **A server for link ingestion only.** Supersedes D-03 in part. | D-03's reasoning — that auth, migrations and RLS were effort better spent on the deck — still holds, and none of them are here: there are still no accounts, and the wardrobe still lives in the visitor's own browser. What changed is that R-05 turned out to be unfixable from inside a tab. The obstacle is not CORS, which a proxy solves; it is bot protection that fingerprints the client, which refuses a data-centre request whatever headers it carries. Two things only a server can do are therefore worth a server: a cache shared by everyone who pastes the same link, and a rented residential proxy for the shops that refuse everyone else. Both endpoints degrade to a non-200, and non-200 is what the existing four-reader chain already falls through — so the server is an accelerator in front of the static site, never a dependency of it. One table for the cache, one for the rate window, one log that the daily spend cap is counted from. |
 | D-10 | **The weather chip shows real weather for one fixed city, fetched client-side.** | Open-Meteo needs no API key and sends permissive CORS headers, so the chip can be genuinely live with no backend. Location is a fixed city rather than the browser's geolocation: a permission prompt on first load of a portfolio link is hostile, and the design draws a specific city into the layout. Falls back to the seeded value if the request fails. |
 
 ---
@@ -453,6 +460,7 @@ and why. For this audience that document is read before the code.
 | R-03 | **Cross-origin image URLs.** Most images found on the web cannot be read back off a canvas. | File drop is the primary path; URL is best-effort with a specific error state. Set expectations in the hint copy. |
 | R-04 | **No responsive design exists.** The split-screen layouts have no stacking rule below ~900px and the deck's keyboard model has no touch equivalent. | Ship desktop-first as designed. Below the breakpoint, show an honest note rather than a broken layout. Designing mobile is a separate piece of work. |
 | R-05 | **Link ingest leans on three public readers.** They are unauthenticated, rate-limited and occasionally down — `allorigins.win` refused every request for part of the build — and a visitor's pasted URL is sent to whichever answers. Mitigated by trying the shop itself first (no third party sees the URL when CORS allows it), giving each reader its own timeout so a dead one costs seconds rather than the run, and degrading to the no-match card. Not mitigated: coverage. Turning partial into reliable needs a paid product-data API or a headless-browser service, and a static site has nowhere to put either. |
+| R-06 | **The listing endpoint fetches URLs a stranger supplies**, which is the textbook SSRF shape: paste `http://169.254.169.254/latest/meta-data/` and a naive proxy reads cloud metadata from inside the trust boundary and hands it back. Handled in two layers — `api/_lib/guard.ts` is pure and rules on scheme, embedded credentials, port and address (loopback, link-local, RFC1918, CGNAT, and the IPv6 spellings including `::ffff:a9fe:a9fe`, which is what `URL` normalises an IPv4-mapped literal to); `api/_lib/outbound.ts` adds what needs Node, resolving every hostname and re-checking each address, and following redirects by hand so a hop cannot escape the rules. Known and accepted: the address is checked before the socket opens, so a DNS record that changes between the two would still be followed. Closing that means dialling the resolved address with a `Host` header through a custom agent — a fair amount of code for an attack that needs control of a DNS zone, on an endpoint that returns other people's public product pages. |
 | Q-01 | **Two empty states are undesigned:** zero saved fits, and a category too sparse for the deck to build a fit. | The handoff says to ask rather than invent. Design them before building them. |
 | Q-02 | **Should wearing a fit increment `wornCount`?** The handoff raises this and leaves it open. | Out of scope for v1; `wornCount` comes from seed data. Revisit after the deck ships. |
 
@@ -468,4 +476,5 @@ and why. For this audience that document is read before the code.
 5. Add item: the real cut-out path first, then the three simulated catalogue paths.
 6. Empty wardrobe, reset flow, error states.
 7. Real imagery and seed content.
+8. The ingest server (D-12) and deployment.
 8. Test suite per §9, then CI and deploy.

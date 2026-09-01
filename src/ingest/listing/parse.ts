@@ -17,10 +17,16 @@
  * which of them a given retailer tolerates is not predictable. Measured on a
  * handful of shops they barely overlap: one gets Uniqlo, another Pacsun, a
  * third Nike. Hence a chain rather than a pick.
+ *
+ * `server` is Fitgrid's own endpoint, which is tried first where it is
+ * deployed: it caches what it reads and can rent a residential proxy, so it
+ * succeeds on shops none of the public readers will touch. It is absent in
+ * local development, which is why the rest of the chain stays.
  */
-export type ReaderId = 'direct' | 'jina' | 'allorigins' | 'microlink';
+export type ReaderId = 'server' | 'direct' | 'jina' | 'allorigins' | 'microlink';
 
 export const READER_LABEL: Record<ReaderId, string> = {
+  server: 'Fitgrid\u2019s reader',
   direct: 'the site itself',
   jina: 'r.jina.ai',
   allorigins: 'allorigins.win',
@@ -431,7 +437,12 @@ function decodeEntities(value: string): string {
 export function imageCandidates(imageUrl: string): string[] {
   const bare = imageUrl.replace(/^https?:\/\//, '');
   return [
+    // The origin first: when a CDN does send permissive headers this costs
+    // nobody anything. Then our own endpoint, which is same-origin and so
+    // never has the problem at all — and only then other people's proxies,
+    // which are free and correspondingly unreliable.
     imageUrl,
+    `/api/image?url=${encodeURIComponent(imageUrl)}`,
     `https://images.weserv.nl/?url=${encodeURIComponent(bare)}&output=png&n=-1`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`,
   ];

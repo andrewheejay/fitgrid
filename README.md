@@ -11,6 +11,32 @@ you're sure about, and reroll everything around it until the rest works.
 Built from a design handoff: seven specified screens, a fixed token system, and
 two product changes to build rather than restyle.
 
+**Live:** _not deployed yet — link goes here._
+
+## What was built, against the brief
+
+| Area | What is here |
+| :-- | :-- |
+| **Components** | A token layer (`src/styles/tokens.css`) and shared primitives — buttons, chips, spec tables, cards — reused across six screens. `border-radius` is banned outright and stylelint fails the build on it, because the design has no rounded corners and a stray one reads as a mistake. |
+| **Animations** | The deck's reshuffle, the rail's selection travel, and the ingest pipeline's per-step progress, all driven from state rather than timers where the state exists. |
+| **API calls** | Live weather from Open-Meteo. Live product-page reads from whichever of five readers a given shop tolerates. |
+| **Database integration** | Postgres behind two serverless functions: a listing cache, a rate-limit window rolled over in SQL, and an ingest log that the daily spend cap is counted off. Schema in `db/schema.sql`. |
+| **Classes and objects** | The domain layer is plain TypeScript with no framework in it — `domain/deck.ts` is an explicit `reduce(state, event, pools)` state machine, `domain/rail.ts` is a pure windowing function, and both are tested directly. |
+| **Full-stack** | The React app and the `api/` functions share one parser (`src/ingest/listing/parse.ts`), imported by both and tested once. |
+| **Deployment** | Vercel — static bundle plus two Node functions. |
+
+Not attempted: user registration and login. There are no accounts in this
+build, deliberately, and the reasoning is in the decisions table below.
+
+**Mobile responsiveness** is the known gap; see *Known limits*.
+
+## Time spent
+
+One day, 2026-09-01 — first commit at 00:17, last at 15:49, with breaks. That is
+past the four hours the brief suggests. Most of it went into the two things that
+are not scaffolding: the deck's state machine and its tests, and making link
+ingestion actually read real shops rather than pretend to.
+
 ## Running it
 
 ```
@@ -18,10 +44,20 @@ npm install
 npm run dev        # http://localhost:5173
 npm run build      # static bundle in dist/
 npm run typecheck
+npm test
 ```
 
-No environment variables, no services to provision, no database. It is a static
-site.
+**No environment variables required.** The serverless functions are an
+accelerator, not a dependency: without `POSTGRES_URL` they answer 503, and 503
+is a status the browser's reader chain already treats as "try the next one".
+`npm run dev` therefore behaves exactly as it did before there was a server.
+
+To run the server side too, copy `.env.example`, fill it in, and apply the
+schema once:
+
+```
+psql "$POSTGRES_URL" -f db/schema.sql
+```
 
 ## How it is put together
 
@@ -73,13 +109,30 @@ copy is often not what you would file it under.
 
 It works on the shops it works on. Most large retailers sit behind bot
 protection that refuses an automated request, and which reader a given shop
-tolerates is not predictable, so four are tried in order: the site itself first
-(no third party sees the URL when a shop serves permissive CORS headers), then
-`r.jina.ai`, `allorigins.win` and `microlink.io`. Measured across a handful of
-shops these barely overlap — one gets Uniqlo, another Pacsun, a third Nike — and
-plenty are refused by all four. A shop can also publish a readable listing and
-still refuse the pixels. Either way the run ends on the no-match card, which
-says what happened and routes to the image drop.
+tolerates is not predictable, so five are tried in order: Fitgrid's own
+endpoint, then the site itself (no third party sees the URL when a shop serves
+permissive CORS headers), then `r.jina.ai`, `allorigins.win` and
+`microlink.io`. Measured across a handful of shops the public ones barely
+overlap — one gets Uniqlo, another Pacsun, a third Nike — and plenty are
+refused by all of them. A shop can also publish a readable listing and still
+refuse the pixels. Either way the run ends on the no-match card, which says
+what happened and routes to the image drop.
+
+**The server** is the first reader and exists for the two things a browser tab
+cannot do. It caches what it reads in Postgres, so the second person to paste a
+link pays nothing for it; and it can put a request through a rented residential
+proxy, which is the only thing that gets past client fingerprinting. It is also
+the endpoint that hands the browser a studio photo whose CDN would not have
+allowed the canvas to read it.
+
+Fetching a URL a stranger typed is the textbook shape of an SSRF hole, so it is
+guarded in two layers: `api/_lib/guard.ts` is pure and rules on scheme,
+embedded credentials, port and address — loopback, link-local (which is where
+cloud metadata lives), RFC1918, CGNAT, and the IPv6 spellings, including the
+hex form `URL` normalises an IPv4-mapped literal to. `api/_lib/outbound.ts`
+adds what needs Node: every hostname is resolved and every address it resolves
+to is re-checked, and redirects are followed by hand so no hop escapes the
+rules.
 
 **Demonstrated.** The two remaining catalogue paths (care label, order email)
 run the real four-step pipeline shape against a fixed example, and say so on
@@ -95,7 +148,8 @@ Both changed, deliberately.
 
 | Decision | Reasoning |
 | :-- | :-- |
-| **No server, database, or accounts.** | A visitor gets the seeded wardrobe and read-write persistence in their own browser. Removing auth, migrations and row-level security put the effort into the deck and the visual system instead. |
+| **No accounts, and the wardrobe lives in the browser.** | A visitor gets the seeded wardrobe and read-write persistence in their own browser. Removing auth, migrations and row-level security put the effort into the deck and the visual system instead. |
+| **A server, but only for link ingestion.** | The one thing the browser genuinely could not do. The obstacle is not CORS — a proxy solves that — it is bot protection that fingerprints the client and refuses a data-centre request whatever headers it carries. Two things only a server can do earn one: a cache shared by everyone who pastes the same link, and a rented residential proxy. Both endpoints degrade to a non-200 the existing reader chain already falls through, so the server accelerates the static site rather than becoming a dependency of it. |
 | **The auth screen was cut entirely.** | A live email-and-password form that authenticates nothing, on a public URL, invites strangers to type reused passwords into a fake. With no accounts in the build, removing it was more honest than marking it inert. Seven screens became six. |
 | **No embeddings, vector store, or LLM.** | Nothing in these screens uses vector search — the deck reshuffles, the wardrobe sorts on stored fields. "Embedding · 384-d indexed" appeared once, as static text. Carrying a vector database for a label is infrastructure without a consumer, so that row is gone from item detail too. |
 | **Vite over Next.js.** | With persistence in the browser and no API, server components and server actions would sit unused and static export disables the image optimiser — the one thing Next would still have bought. Shipping a framework whose features you don't use is a question the reviewer has to ask. |
@@ -117,13 +171,17 @@ than invented, and are the first thing to design properly.
   keyboard model has no touch equivalent.
 - **A pasted image URL is best-effort.** An image served without permissive CORS
   headers cannot be read back off a canvas; dropping the file always works.
-- **Link ingest depends on three public readers** and covers only the shops
-  they are allowed to reach. They are unauthenticated and rate-limited, they go
-  down (`allorigins.win` was refusing every request while this was built, which
-  is why each reader has its own timeout and the chain moves on), and a pasted
-  URL is sent to whichever one answers. A paid product-data API or a
-  headless-browser service is what turns partial coverage into reliable
-  coverage; neither belongs in a static site with no server.
+- **Link ingest still covers only some shops.** The server closes most of the
+  gap the public readers left, but a page it cannot read is a page nobody adds
+  a garment from. The four public readers remain behind it because they are
+  free and they cover the local case, but they are unauthenticated, rate-limited
+  and occasionally down (`allorigins.win` refused every request for part of this
+  build, which is why each reader has its own timeout and the chain moves on).
+- **The SSRF guard resolves before it connects**, so a DNS record that changed
+  between the two would still be followed. Closing that means dialling the
+  resolved address with a `Host` header through a custom agent — a fair amount
+  of code for an attack that needs control of a DNS zone, against an endpoint
+  that returns other people's public product pages.
 - **The segmentation model is several megabytes**, fetched on first use of that
   tab only. It never touches first paint.
 - **A saved fit cannot be deleted individually** — resetting the demo is the

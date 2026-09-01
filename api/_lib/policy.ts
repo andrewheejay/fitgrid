@@ -18,22 +18,14 @@ export function isFresh(fetchedAt: number, now: number, ttlMs = CACHE_TTL_MS): b
   return now - fetchedAt < ttlMs;
 }
 
+/**
+ * A fixed window, as the database holds it. Counting up and rolling over
+ * happens in SQL — see `takeSlot` — because a read-modify-write here would let
+ * two concurrent requests read the same count and both pass.
+ */
 export interface RateWindow {
   count: number;
   startedAt: number;
-}
-
-/**
- * A fixed-window counter. Rolls over rather than accumulating, so a visitor
- * who waits out the window starts clean.
- */
-export function advanceWindow(
-  current: RateWindow | null,
-  now: number,
-  windowMs = RATE_WINDOW_MS,
-): RateWindow {
-  if (!current || now - current.startedAt >= windowMs) return { count: 1, startedAt: now };
-  return { count: current.count + 1, startedAt: current.startedAt };
 }
 
 export function isOverLimit(window: RateWindow, limit = RATE_LIMIT_PER_WINDOW): boolean {
