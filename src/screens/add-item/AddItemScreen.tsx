@@ -1,182 +1,44 @@
 import { useNavigate } from '@tanstack/react-router';
-import { useCallback, useRef, useState, type DragEvent } from 'react';
+import { useState, type DragEvent } from 'react';
 import { Button } from '~/components/Button';
 import { Tab } from '~/components/Chip';
-import type { Aesthetic, Item } from '~/domain/items';
+import type { Aesthetic } from '~/domain/items';
 import { LAYERS, layerName, type Category } from '~/domain/layers';
-import { loadBitmap, runCutout, type CutoutResult } from '~/ingest/cutout';
-import { sourceById, SOURCES, type SourceId } from '~/ingest/sources';
-import { CATALOGUE_STEPS, CUTOUT_STEPS, type StepStatus } from '~/ingest/steps';
+import { SOURCES } from '~/ingest/sources';
 import { useWardrobe } from '~/store/wardrobeStore';
 import styles from './AddItemScreen.module.css';
 import { CATALOGUE_MATCH, catalogueItem } from './catalogueMatch';
 import { Pipeline } from './Pipeline';
 import { Field, Fields, ResultCard, Select } from './ResultCard';
+import { itemFromDraft, useAddItemFlow } from './useAddItemFlow';
 
-type Phase = 'idle' | 'running' | 'catalogue' | 'cutout' | 'nomatch' | 'error';
-
-const PENDING: StepStatus[] = ['pending', 'pending', 'pending', 'pending'];
-const CATALOGUE_STEP_MS = 700;
-
-interface Draft {
-  name: string;
-  category: Category;
-  silhouette: string;
-  texture: string;
-  aesthetic: Aesthetic;
-}
-
-const EMPTY_DRAFT: Draft = {
-  name: '',
-  category: 'top',
-  silhouette: '',
-  texture: '',
-  aesthetic: 'casual',
-};
+const AESTHETICS: readonly Aesthetic[] = ['workwear', 'quiet', 'casual', 'utility', 'sport'];
 
 export function AddItemScreen() {
   const addItem = useWardrobe((state) => state.addItem);
   const navigate = useNavigate();
-
-  const [sourceId, setSourceId] = useState<SourceId>('label');
-  const [value, setValue] = useState('');
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [statuses, setStatuses] = useState<StepStatus[]>(PENDING);
-  const [runningNote, setRunningNote] = useState<string | undefined>(undefined);
-  const [cutout, setCutout] = useState<CutoutResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const flow = useAddItemFlow();
   const [dragging, setDragging] = useState(false);
-  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
-  const timers = useRef<number[]>([]);
 
-  const source = sourceById(sourceId);
-  const steps = source.real ? CUTOUT_STEPS : CATALOGUE_STEPS;
-
-  const resetRun = useCallback(() => {
-    timers.current.forEach(window.clearTimeout);
-    timers.current = [];
-    setPhase('idle');
-    setStatuses(PENDING);
-    setRunningNote(undefined);
-    setCutout(null);
-    setError(null);
-    setDraft(EMPTY_DRAFT);
-  }, []);
-
-  const switchSource = (next: SourceId) => {
-    resetRun();
-    setSourceId(next);
-    setValue('');
-  };
-
-  /** The three catalogue paths: the four-step shape, on fixed content. */
-  const runCatalogue = () => {
-    resetRun();
-    setPhase('running');
-    CATALOGUE_STEPS.forEach((_, index) => {
-      timers.current.push(
-        window.setTimeout(
-          () =>
-            setStatuses((current) =>
-              current.map((status, i) =>
-                i < index ? 'done' : i === index ? 'running' : status,
-              ),
-            ),
-          index * CATALOGUE_STEP_MS,
-        ),
-      );
-    });
-    timers.current.push(
-      window.setTimeout(() => {
-        setStatuses(['done', 'done', 'done', 'done']);
-        setPhase('catalogue');
-      }, CATALOGUE_STEPS.length * CATALOGUE_STEP_MS),
-    );
-  };
-
-  /** The image drop: every step is real work in this browser. */
-  const runImage = async (input: File | string) => {
-    resetRun();
-    setPhase('running');
-    setStatuses(['running', 'pending', 'pending', 'pending']);
-
-    try {
-      const bitmap = await loadBitmap(input);
-      setStatuses(['done', 'running', 'pending', 'pending']);
-
-      const result = await runCutout(bitmap, ({ step, ratio }) => {
-        if (step === 'model') {
-          setRunningNote(
-            ratio >= 1 ? 'model ready' : `loading model ${Math.round(ratio * 100)}%`,
-          );
-          return;
-        }
-        setRunningNote(undefined);
-        const index = step === 'matte' ? 1 : step === 'trim' ? 2 : 3;
-        setStatuses((current) =>
-          current.map((status, i) =>
-            i < index ? 'done' : i === index ? (ratio >= 1 ? 'done' : 'running') : status,
-          ),
-        );
-      });
-
-      setStatuses(['done', 'done', 'done', 'done']);
-      setRunningNote(undefined);
-      setCutout(result);
-      setPhase('cutout');
-    } catch (caught) {
-      setRunningNote(undefined);
-      setStatuses(PENDING);
-      setError(caught instanceof Error ? caught.message : 'That image could not be processed.');
-      setPhase('error');
-    }
-  };
-
-  const submit = () => {
-    if (phase === 'catalogue' || phase === 'cutout') {
-      resetRun();
-      setValue('');
-      return;
-    }
-    if (source.real) {
-      if (!value.trim()) return;
-      void runImage(value.trim());
-      return;
-    }
-    runCatalogue();
-  };
+  const { source, phase, cutout, draft } = flow;
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDragging(false);
     const file = event.dataTransfer.files[0];
     if (!file) return;
-    if (sourceId !== 'image') setSourceId('image');
-    void runImage(file);
+    if (source.id !== 'image') flow.switchSource('image');
+    flow.runImage(file);
   };
 
   const addCatalogueItem = () => {
-    addItem(catalogueItem(crypto.randomUUID(), sourceId));
+    addItem(catalogueItem(crypto.randomUUID(), source.id));
     navigate({ to: '/wardrobe' });
   };
 
   const addCutoutItem = () => {
     if (!cutout) return;
-    const item: Item = {
-      id: crypto.randomUUID(),
-      category: draft.category,
-      name: draft.name.trim() || 'Untitled piece',
-      silhouette: draft.silhouette.trim() || 'regular',
-      texture: draft.texture.trim() || 'unrecorded',
-      aesthetic: draft.aesthetic,
-      tone: cutout.palette[0],
-      palette: cutout.palette,
-      addedAt: new Date().toISOString().slice(0, 10),
-      wornCount: 0,
-      imageUrl: cutout.url,
-      source: 'image',
-    };
-    addItem(item);
+    addItem(itemFromDraft(draft, cutout, crypto.randomUUID()));
     navigate({ to: '/wardrobe' });
   };
 
@@ -210,7 +72,7 @@ export function AddItemScreen() {
           ) : (
             <>
               <div
-                className={`${styles.glyph} ${sourceId === 'image' ? styles.glyphImage : ''}`}
+                className={`${styles.glyph} ${source.id === 'image' ? styles.glyphImage : ''}`}
                 aria-hidden="true"
               />
               <p className={styles.frameText}>
@@ -242,8 +104,8 @@ export function AddItemScreen() {
             <Tab
               key={entry.id}
               label={entry.tab}
-              active={entry.id === sourceId}
-              onClick={() => switchSource(entry.id)}
+              active={entry.id === source.id}
+              onClick={() => flow.switchSource(entry.id)}
             />
           ))}
         </div>
@@ -251,15 +113,15 @@ export function AddItemScreen() {
         <div className={styles.entry}>
           <input
             className={styles.input}
-            value={value}
+            value={flow.value}
             placeholder={source.placeholder}
-            onChange={(event) => setValue(event.target.value)}
+            onChange={(event) => flow.setValue(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter') submit();
+              if (event.key === 'Enter') flow.submit();
             }}
             disabled={busy}
           />
-          <Button size="lg" onClick={submit} disabled={busy}>
+          <Button size="lg" onClick={flow.submit} disabled={busy}>
             {busy ? source.busyButton : succeeded ? 'Add another' : source.button}
           </Button>
         </div>
@@ -278,9 +140,9 @@ export function AddItemScreen() {
         </p>
 
         <Pipeline
-          steps={steps}
-          statuses={statuses}
-          {...(runningNote !== undefined ? { runningNote } : {})}
+          steps={flow.steps}
+          statuses={flow.statuses}
+          {...(flow.runningNote !== undefined ? { runningNote: flow.runningNote } : {})}
           started={phase !== 'idle'}
         />
 
@@ -295,7 +157,7 @@ export function AddItemScreen() {
             actions={
               <>
                 <Button onClick={addCatalogueItem}>Add to wardrobe</Button>
-                <Button variant="invert" onClick={() => setPhase('nomatch')}>
+                <Button variant="invert" onClick={flow.showNoMatch}>
                   Not my item
                 </Button>
               </>
@@ -319,7 +181,7 @@ export function AddItemScreen() {
             actions={
               <>
                 <Button onClick={addCutoutItem}>Add to wardrobe</Button>
-                <Button variant="invert" onClick={resetRun}>
+                <Button variant="invert" onClick={flow.reset}>
                   Start over
                 </Button>
               </>
@@ -329,7 +191,7 @@ export function AddItemScreen() {
               <Field
                 label="Name"
                 value={draft.name}
-                onChange={(name) => setDraft({ ...draft, name })}
+                onChange={(name) => flow.setDraft({ ...draft, name })}
                 placeholder="Boxy oxford shirt"
                 wide
                 sans
@@ -339,7 +201,7 @@ export function AddItemScreen() {
                 value={draft.category}
                 options={LAYERS.map((layer) => ({ value: layer, label: layerName(layer) }))}
                 onChange={(category) =>
-                  setDraft({ ...draft, category: category as Category })
+                  flow.setDraft({ ...draft, category: category as Category })
                 }
               />
               <Select
@@ -347,19 +209,19 @@ export function AddItemScreen() {
                 value={draft.aesthetic}
                 options={AESTHETICS.map((option) => ({ value: option, label: option }))}
                 onChange={(aesthetic) =>
-                  setDraft({ ...draft, aesthetic: aesthetic as Aesthetic })
+                  flow.setDraft({ ...draft, aesthetic: aesthetic as Aesthetic })
                 }
               />
               <Field
                 label="Silhouette"
                 value={draft.silhouette}
-                onChange={(silhouette) => setDraft({ ...draft, silhouette })}
+                onChange={(silhouette) => flow.setDraft({ ...draft, silhouette })}
                 placeholder="boxy"
               />
               <Field
                 label="Texture"
                 value={draft.texture}
-                onChange={(texture) => setDraft({ ...draft, texture })}
+                onChange={(texture) => flow.setDraft({ ...draft, texture })}
                 placeholder="cotton poplin"
               />
             </Fields>
@@ -374,19 +236,19 @@ export function AddItemScreen() {
               photo of it online and drop that in — Fitgrid will cut the background out.
             </p>
             <div className={styles.errorActions}>
-              <Button variant="invert" onClick={() => switchSource('image')}>
+              <Button variant="invert" onClick={() => flow.switchSource('image')}>
                 Drop an image instead →
               </Button>
             </div>
           </div>
         ) : null}
 
-        {phase === 'error' && error ? (
+        {phase === 'error' && flow.error ? (
           <div className={styles.error}>
             <p className={styles.errorLabel}>That didn&rsquo;t work</p>
-            <p className={styles.errorBody}>{error}</p>
+            <p className={styles.errorBody}>{flow.error}</p>
             <div className={styles.errorActions}>
-              <Button variant="invert" onClick={resetRun}>
+              <Button variant="invert" onClick={flow.reset}>
                 Try again
               </Button>
             </div>
@@ -396,5 +258,3 @@ export function AddItemScreen() {
     </main>
   );
 }
-
-const AESTHETICS: readonly Aesthetic[] = ['workwear', 'quiet', 'casual', 'utility', 'sport'];

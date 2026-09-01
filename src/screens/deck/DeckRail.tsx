@@ -28,7 +28,7 @@ export function DeckRail({
   onSelect,
   onToggleLock,
 }: DeckRailProps) {
-  const window = railWindow(pool.length, selected);
+  const visibleIndices = railWindow(pool.length, selected);
 
   return (
     <section
@@ -53,7 +53,7 @@ export function DeckRail({
       </div>
 
       <div className={styles.strip}>
-        {window.map((index) => {
+        {visibleIndices.map((index) => {
           const id = pool[index];
           const item = id ? itemsById.get(id) : undefined;
           const isSelected = index === selected;

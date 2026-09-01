@@ -2,6 +2,12 @@ import type { Category } from './layers';
 
 export type ItemId = string;
 
+/**
+ * A CSS hex colour. Narrow enough to catch a seed entry that forgot its `#`,
+ * which would otherwise render as a silently broken swatch.
+ */
+export type Hex = `#${string}`;
+
 export type Aesthetic = 'workwear' | 'quiet' | 'casual' | 'utility' | 'sport';
 
 /** How the item entered the wardrobe. Drives the credit line on item detail. */
@@ -20,8 +26,8 @@ export interface Item {
   aesthetic: Aesthetic;
 
   /** Dominant hex. Drives the placeholder pattern and any colour UI. */
-  tone: string;
-  palette: readonly [string, string, string];
+  tone: Hex;
+  palette: readonly [Hex, Hex, Hex];
 
   /**
    * ISO 8601. Stored unformatted on purpose: the prototype's "Mar 04" strings
@@ -41,17 +47,6 @@ export interface Item {
   retail?: string;
 
   source: ItemSource;
-}
-
-/** "Mar 04" — the handoff's display format. */
-export function formatAddedAt(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat('en-GB', {
-    month: 'short',
-    day: '2-digit',
-    timeZone: 'UTC',
-  }).format(date);
 }
 
 /** "boxy / cotton poplin / worn 12×" — the wardrobe cell's metadata line. */

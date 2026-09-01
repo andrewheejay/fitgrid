@@ -16,13 +16,6 @@ export interface Overlay {
   removedOutfitIds: OutfitId[];
 }
 
-export const EMPTY_OVERLAY: Overlay = {
-  addedItems: [],
-  removedItemIds: [],
-  savedOutfits: [],
-  removedOutfitIds: [],
-};
-
 export function emptyOverlay(): Overlay {
   return { addedItems: [], removedItemIds: [], savedOutfits: [], removedOutfitIds: [] };
 }

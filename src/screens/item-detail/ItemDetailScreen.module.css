@@ -107,3 +107,7 @@
   font-size: var(--t-body);
   color: var(--ink-muted);
 }
+
+.missingBack {
+  margin-top: 12px;
+}

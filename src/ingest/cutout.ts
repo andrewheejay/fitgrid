@@ -1,9 +1,10 @@
+import type { Hex } from '~/domain/items';
 import type { CutoutResponse, CutoutStep } from './worker/cutout.worker';
 
 export interface CutoutResult {
   /** Object URL for the trimmed, centred cut-out. */
   url: string;
-  palette: [string, string, string];
+  palette: [Hex, Hex, Hex];
 }
 
 export interface CutoutProgress {

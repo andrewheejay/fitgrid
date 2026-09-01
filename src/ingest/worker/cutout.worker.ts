@@ -1,5 +1,8 @@
 /// <reference lib="webworker" />
-import { AutoModel, AutoProcessor, RawImage } from '@huggingface/transformers';
+import { AutoModel, AutoProcessor, RawImage, type Tensor } from '@huggingface/transformers';
+import type { Hex } from '~/domain/items';
+
+type HexTriple = [Hex, Hex, Hex];
 
 /**
  * Background removal, off the main thread.
@@ -15,8 +18,11 @@ import { AutoModel, AutoProcessor, RawImage } from '@huggingface/transformers';
 
 const MODEL_ID = 'briaai/RMBG-1.4';
 
-/** The shape of the single-channel matte the model hands back. */
-type MaskTensor = Array<{ mul: (value: number) => { to: (dtype: string) => never } }>;
+/**
+ * The shape of the single-channel matte the model hands back. Hand-rolled
+ * because transformers.js does not type this model's output usefully.
+ */
+type MaskTensor = Array<{ mul: (value: number) => { to: (dtype: string) => Tensor } }>;
 
 /** Padding around the trimmed garment, as a fraction of the canvas. */
 const PADDING = 0.12;
@@ -25,7 +31,7 @@ export type CutoutRequest = { image: ImageBitmap };
 
 export type CutoutResponse =
   | { type: 'progress'; step: CutoutStep; ratio: number }
-  | { type: 'done'; blob: Blob; palette: [string, string, string] }
+  | { type: 'done'; blob: Blob; palette: HexTriple }
   | { type: 'error'; message: string };
 
 export type CutoutStep = 'model' | 'matte' | 'trim' | 'palette';
@@ -178,7 +184,7 @@ function centreOnSquare(source: OffscreenCanvas, box: Box): OffscreenCanvas {
  * matte cut away. Coarse bucketing is enough: this feeds three 22px swatches,
  * not a colour-science pipeline.
  */
-function dominantColours(data: Uint8ClampedArray): [string, string, string] {
+function dominantColours(data: Uint8ClampedArray): HexTriple {
   const buckets = new Map<number, { count: number; r: number; g: number; b: number }>();
 
   for (let i = 0; i < data.length; i += 4) {
@@ -203,7 +209,7 @@ function dominantColours(data: Uint8ClampedArray): [string, string, string] {
   return [hex[0] ?? '#8a8a8a', hex[1] ?? '#d4d4d4', hex[2] ?? '#3a3a3a'];
 }
 
-function toHex(r: number, g: number, b: number): string {
+function toHex(r: number, g: number, b: number): Hex {
   const channel = (value: number) =>
     Math.round(value).toString(16).padStart(2, '0').slice(0, 2);
   return `#${channel(r)}${channel(g)}${channel(b)}`;

@@ -27,6 +27,7 @@ export function Header({ onReset }: HeaderProps) {
               key={entry.to}
               to={entry.to}
               className={`${styles.navItem} ${isActive(path, entry.to) ? styles.navActive : ''}`}
+              aria-current={isActive(path, entry.to) ? 'page' : undefined}
             >
               {entry.label}
             </Link>

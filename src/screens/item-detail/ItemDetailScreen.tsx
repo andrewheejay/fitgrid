@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '~/components/Button';
 import { GarmentImage } from '~/components/GarmentImage';
 import { SpecTable } from '~/components/SpecTable';
-import { formatAddedAt } from '~/domain/items';
+import { formatShortDate } from '~/domain/date';
 import { layerName } from '~/domain/layers';
 import { useItem, useWardrobe } from '~/store/wardrobeStore';
 import styles from './ItemDetailScreen.module.css';
@@ -19,7 +19,7 @@ export function ItemDetailScreen() {
     return (
       <main className={styles.missing}>
         <p>That item is no longer in the wardrobe.</p>
-        <p style={{ marginTop: 12 }}>
+        <p className={styles.missingBack}>
           <Link to="/wardrobe">← Wardrobe</Link>
         </p>
       </main>
@@ -41,7 +41,7 @@ export function ItemDetailScreen() {
 
         <h1 className={styles.title}>{item.name}</h1>
         <p className={styles.subtitle}>
-          {layerName(item.category)} · added {formatAddedAt(item.addedAt)}
+          {layerName(item.category)} · added {formatShortDate(item.addedAt)}
         </p>
 
         <div className={styles.table}>

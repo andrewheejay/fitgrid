@@ -66,14 +66,3 @@ export function outfitFromSelection(
     shoes: ids.shoes,
   };
 }
-
-/** "Mar 04" for a fit's date row. */
-export function formatOutfitDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat('en-GB', {
-    month: 'short',
-    day: '2-digit',
-    timeZone: 'UTC',
-  }).format(date);
-}
