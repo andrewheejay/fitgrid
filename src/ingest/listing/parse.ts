@@ -277,12 +277,23 @@ export function htmlTitle(html: string): string | undefined {
  * signature attached; the wardrobe wants only the garment. Runs twice, for
  * titles that append both a section and a shop.
  */
+/**
+ * Two ways a page signs its title with the shop's name, and both get cut.
+ *
+ * The pipe family is the common one — "… | Pacsun". The second is a bare
+ * domain after a full stop, "… Hoodie. Nike.com", which is the same suffix
+ * wearing different punctuation. Each is only removed when the tail actually
+ * names this shop, so a garment called "Boot Cut. Original" keeps its name.
+ */
+const SEPARATED = /^(.*\S)\s[|·–—-]\s([^|·–—-]+)$/;
+const DOMAIN_TAIL = /^(.*\S)[.,]\s*((?:[a-z0-9-]+\.)+[a-z]{2,})$/i;
+
 export function stripSiteSuffix(title: string, pageUrl: string, siteName?: string): string {
   const cleaned = title.replace(/\s+/g, ' ').trim();
   let out = cleaned;
 
   for (let pass = 0; pass < 2; pass += 1) {
-    const match = /^(.*\S)\s[|·–—-]\s([^|·–—-]+)$/.exec(out);
+    const match = SEPARATED.exec(out) ?? DOMAIN_TAIL.exec(out);
     const tail = match?.[2];
     if (!match?.[1] || !tail || !isSiteName(tail, pageUrl, siteName)) break;
     out = match[1].trim();
@@ -292,7 +303,9 @@ export function stripSiteSuffix(title: string, pageUrl: string, siteName?: strin
 
 function isSiteName(tail: string, pageUrl: string, siteName?: string): boolean {
   const normalise = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const candidate = normalise(tail);
+  // "END. (US)" is END. with a locale bolted on. The region marker is not part
+  // of the name and would otherwise stop it matching the domain.
+  const candidate = normalise(tail.replace(/\s*\([^)]*\)\s*$/, ''));
   if (!candidate) return false;
   if (siteName && candidate === normalise(siteName)) return true;
 
@@ -302,8 +315,13 @@ function isSiteName(tail: string, pageUrl: string, siteName?: string): boolean {
   } catch {
     return false;
   }
-  const label = host.replace(/^www\./, '').split('.')[0] ?? '';
-  return label.length > 2 && candidate.includes(normalise(label));
+  const label = normalise(host.replace(/^www\./, '').split('.')[0] ?? '');
+  if (label.length <= 2) return false;
+
+  // Either direction: "Pacsun" contains "pacsun", and "endclothing" starts with
+  // the "END" a page signs itself with. `startsWith` rather than `includes` on
+  // that side, because a shop's name leads its domain and a colour does not.
+  return candidate.includes(label) || (candidate.length >= 3 && label.startsWith(candidate));
 }
 
 function absolute(url: string, pageUrl: string): string | undefined {

@@ -11,7 +11,7 @@ you're sure about, and reroll everything around it until the rest works.
 Built from a design handoff: seven specified screens, a fixed token system, and
 two product changes to build rather than restyle.
 
-**Live:** _not deployed yet — link goes here._
+**Live:** <https://fitgrid.vercel.app>
 
 ## What was built, against the brief
 
@@ -29,13 +29,6 @@ Not attempted: user registration and login. There are no accounts in this
 build, deliberately, and the reasoning is in the decisions table below.
 
 **Mobile responsiveness** is the known gap; see *Known limits*.
-
-## Time spent
-
-One day, 2026-09-01 — first commit at 00:17, last at 15:49, with breaks. That is
-past the four hours the brief suggests. Most of it went into the two things that
-are not scaffolding: the deck's state machine and its tests, and making link
-ingestion actually read real shops rather than pretend to.
 
 ## Running it
 

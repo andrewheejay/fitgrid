@@ -64,7 +64,9 @@ describe('parseProductHtml', () => {
     </head></html>`;
 
     expect(parseProductHtml(html, 'https://www.nike.com/t/hoodie')).toEqual({
-      name: 'Sportswear Club Fleece Hoodie. Nike.com',
+      // "Nike.com" goes the same way "| Nike" would; a shop signing its own
+      // title is not part of the garment's name.
+      name: 'Sportswear Club Fleece Hoodie',
       imageUrl: 'https://static.nike.com/hoodie.png',
       brand: 'Nike',
       retail: '$65',
@@ -147,6 +149,35 @@ describe('stripSiteSuffix', () => {
 
   it('keeps a suffix that is part of the garment name', () => {
     expect(stripSiteSuffix('Hoodie - Jet Black', PAGE_URL)).toBe('Hoodie - Jet Black');
+  });
+
+  it('drops a shop that signs itself with a locale', () => {
+    expect(
+      stripSiteSuffix(
+        'Human Made Dry Alls Duck Long Sleeve T-Shirt | END. (US)',
+        'https://www.endclothing.com/us/human-made.html',
+      ),
+    ).toBe('Human Made Dry Alls Duck Long Sleeve T-Shirt');
+  });
+
+  it('drops a bare domain after a full stop', () => {
+    expect(
+      stripSiteSuffix(
+        'Nike Sportswear Club Fleece Pullover Hoodie. Nike.com',
+        'https://www.nike.com/t/sportswear-club-fleece',
+      ),
+    ).toBe('Nike Sportswear Club Fleece Pullover Hoodie');
+  });
+
+  // The reverse match is deliberately narrow. A tail the domain merely
+  // contains is a colour as often as it is a shop.
+  it('keeps a colour that happens to start the domain', () => {
+    expect(stripSiteSuffix('Fleece Hoodie | Jet', 'https://www.jetblackco.com/p')).toBe(
+      'Fleece Hoodie',
+    );
+    expect(stripSiteSuffix('Fleece Hoodie | Black', 'https://www.jetblackco.com/p')).toBe(
+      'Fleece Hoodie | Black',
+    );
   });
 
   it('never returns an empty name', () => {
