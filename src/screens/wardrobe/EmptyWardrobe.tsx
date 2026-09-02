@@ -16,11 +16,11 @@ export function EmptyWardrobe() {
       <div className={styles.mark} aria-hidden="true" />
       <h1 className={styles.title}>Nothing in the closet yet</h1>
       <p className={styles.body}>
-        Scan five care labels, or forward one order email. That is enough for Fitgrid to start
+        Paste five product links, or drop five photographs. That is enough for Fitgrid to start
         proposing fits.
       </p>
       <div className={styles.actions}>
-        <Button onClick={() => navigate({ to: '/add' })}>Scan first label</Button>
+        <Button onClick={() => navigate({ to: '/add' })}>Add the first piece</Button>
         {/*
           The prototype's "Skip for now" returned to a wardrobe that still had
           items in it. Here an empty closet is really empty, so the second

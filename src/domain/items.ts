@@ -12,8 +12,15 @@ export const AESTHETICS = ['workwear', 'quiet', 'casual', 'utility', 'sport'] as
 
 export type Aesthetic = (typeof AESTHETICS)[number];
 
-/** How the item entered the wardrobe. Drives the credit line on item detail. */
-export type ItemSource = 'label' | 'link' | 'receipt' | 'image';
+/**
+ * How the item entered the wardrobe. Drives the credit line on item detail.
+ *
+ * Two ways in, both real: a product page Fitgrid read, or an image cut out in
+ * the browser. The care-label scan and the order-email parse were simulations
+ * of a catalogue this build does not have, and a tab that returns a fixed
+ * answer teaches a reviewer nothing the other two do not.
+ */
+export type ItemSource = 'link' | 'image';
 
 export interface Item {
   id: ItemId;

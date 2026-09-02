@@ -39,6 +39,26 @@
 
 .frameDrag {
   border-color: var(--navy);
+  background: var(--surface-selected);
+}
+
+/*
+ * The frame is a button on the image path — clicking it opens the file
+ * picker — so it has to shed everything a button brings with it and keep the
+ * layout the div next door has.
+ */
+.framePick {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/*
+ * The real file input. It is never shown: the frame above is the control, and
+ * a browser's own "Choose file" button cannot be styled into this design.
+ */
+.picker {
+  display: none;
 }
 
 .glyph {
@@ -132,10 +152,6 @@
   color: var(--ink-faint);
   margin-top: 10px;
   max-width: 52ch;
-}
-
-.demoNote {
-  color: var(--ink-muted);
 }
 
 .error {

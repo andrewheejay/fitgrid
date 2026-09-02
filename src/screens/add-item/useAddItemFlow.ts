@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { guessCategory } from '~/ingest/classify';
 import type { Aesthetic, Hex, Item } from '~/domain/items';
 import type { Category } from '~/domain/layers';
@@ -11,9 +11,9 @@ import {
   type Listing,
 } from '~/ingest/listing';
 import { sourceById, type Source, type SourceId } from '~/ingest/sources';
-import { CATALOGUE_STEPS, type PipelineStep, type StepStatus } from '~/ingest/steps';
+import { type PipelineStep, type StepStatus } from '~/ingest/steps';
 
-export type Phase = 'idle' | 'running' | 'catalogue' | 'cutout' | 'nomatch' | 'error';
+export type Phase = 'idle' | 'running' | 'cutout' | 'nomatch' | 'error';
 
 /**
  * The fields only a human can supply — so they are typed, not guessed.
@@ -50,7 +50,6 @@ const EMPTY_DRAFT: Draft = {
 
 const PENDING: StepStatus[] = ['pending', 'pending', 'pending', 'pending'];
 const ALL_DONE: StepStatus[] = ['done', 'done', 'done', 'done'];
-const CATALOGUE_STEP_MS = 700;
 
 export interface AddItemFlow {
   source: Source;
@@ -70,7 +69,6 @@ export interface AddItemFlow {
   submit: () => void;
   runImage: (input: File | string) => void;
   reset: () => void;
-  showNoMatch: () => void;
 }
 
 /**
@@ -82,7 +80,7 @@ export interface AddItemFlow {
  * without reading markup.
  */
 export function useAddItemFlow(): AddItemFlow {
-  const [sourceId, setSourceId] = useState<SourceId>('label');
+  const [sourceId, setSourceId] = useState<SourceId>('link');
   const [value, setValue] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [statuses, setStatuses] = useState<StepStatus[]>(PENDING);
@@ -92,18 +90,7 @@ export function useAddItemFlow(): AddItemFlow {
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
 
-  const timers = useRef<number[]>([]);
-  const clearTimers = useCallback(() => {
-    timers.current.forEach(window.clearTimeout);
-    timers.current = [];
-  }, []);
-
-  // Leaving the screen mid-run must not leave timers firing into a component
-  // that is no longer mounted.
-  useEffect(() => clearTimers, [clearTimers]);
-
   const reset = useCallback(() => {
-    clearTimers();
     setPhase('idle');
     setStatuses(PENDING);
     setRunningNote(undefined);
@@ -111,7 +98,7 @@ export function useAddItemFlow(): AddItemFlow {
     setListing(null);
     setError(null);
     setDraft(EMPTY_DRAFT);
-  }, [clearTimers]);
+  }, []);
 
   const switchSource = useCallback(
     (next: SourceId) => {
@@ -121,29 +108,6 @@ export function useAddItemFlow(): AddItemFlow {
     },
     [reset],
   );
-
-  /** The two catalogue paths: the real four-step shape, on fixed content. */
-  const runCatalogue = useCallback(() => {
-    reset();
-    setPhase('running');
-
-    CATALOGUE_STEPS.forEach((_, index) => {
-      timers.current.push(
-        window.setTimeout(() => {
-          setStatuses((current) =>
-            current.map((status, i) => (i < index ? 'done' : i === index ? 'running' : status)),
-          );
-        }, index * CATALOGUE_STEP_MS),
-      );
-    });
-
-    timers.current.push(
-      window.setTimeout(() => {
-        setStatuses(ALL_DONE);
-        setPhase('catalogue');
-      }, CATALOGUE_STEPS.length * CATALOGUE_STEP_MS),
-    );
-  }, [reset]);
 
   const fail = useCallback((caught: unknown, fallback: string) => {
     setRunningNote(undefined);
@@ -191,6 +155,16 @@ export function useAddItemFlow(): AddItemFlow {
   const runImage = useCallback(
     async (input: File | string) => {
       reset();
+
+      // A dropped file is whatever was under the cursor. Saying so beats
+      // letting the decoder fail and reporting that the image was unreadable,
+      // which it was not — it was a PDF.
+      if (input instanceof File && !input.type.startsWith('image/')) {
+        setError(`${input.name} is not an image.`);
+        setPhase('error');
+        return;
+      }
+
       setPhase('running');
       setStatuses(['running', 'pending', 'pending', 'pending']);
 
@@ -253,7 +227,7 @@ export function useAddItemFlow(): AddItemFlow {
 
   const submit = useCallback(() => {
     // After a success the same button starts the next run.
-    if (phase === 'catalogue' || phase === 'cutout') {
+    if (phase === 'cutout') {
       reset();
       setValue('');
       return;
@@ -263,12 +237,8 @@ export function useAddItemFlow(): AddItemFlow {
       if (entered) void runLink(entered);
       return;
     }
-    if (source.id === 'image') {
-      if (entered) void runImage(entered);
-      return;
-    }
-    runCatalogue();
-  }, [phase, reset, runCatalogue, runImage, runLink, source.id, value]);
+    if (entered) void runImage(entered);
+  }, [phase, reset, runImage, runLink, source.id, value]);
 
   return {
     source,
@@ -287,10 +257,6 @@ export function useAddItemFlow(): AddItemFlow {
     submit,
     runImage: (input) => void runImage(input),
     reset,
-    showNoMatch: () => {
-      setError(null);
-      setPhase('nomatch');
-    },
   };
 }
 

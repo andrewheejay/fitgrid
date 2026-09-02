@@ -1,10 +1,10 @@
 import type { ItemSource } from '~/domain/items';
-import { CATALOGUE_STEPS, CUTOUT_STEPS, LINK_STEPS, type PipelineStep } from './steps';
+import { CUTOUT_STEPS, LINK_STEPS, type PipelineStep } from './steps';
 
 /**
- * The same four the domain records on an item, and deliberately the same type:
+ * The same two the domain records on an item, and deliberately the same type:
  * a tab the visitor picked is what gets stored as where the garment came from,
- * so a fifth tab cannot be added without the domain hearing about it.
+ * so a third tab cannot be added without the domain hearing about it.
  */
 export type SourceId = ItemSource;
 
@@ -22,24 +22,15 @@ export interface Source {
   busyButton: string;
   /** The four rows of the pipeline column for this path. */
   steps: readonly PipelineStep[];
-  /** Whether this path does real work or demonstrates the intended flow. */
-  real: boolean;
 }
 
+/**
+ * Both paths do real work. The care-label scan and the order-email parse are
+ * gone: each needed commercial product data or a per-brand parser set, so both
+ * returned one fixed example, and a tab that always answers the same thing is
+ * a screenshot with a button on it.
+ */
 export const SOURCES: readonly Source[] = [
-  {
-    id: 'label',
-    tab: 'Scan care label',
-    placeholder: 'Point camera at the sewn-in label',
-    hint: 'The label carries brand, style code and fibre content. Best hit rate of the three.',
-    idleCaption: ['Hold the label flat', 'inside the frame'],
-    busyCaption: 'Reading the care label',
-    credit: 'Studio image supplied by the brand — never your camera.',
-    button: 'Look up',
-    busyButton: 'Matching…',
-    steps: CATALOGUE_STEPS,
-    real: false,
-  },
   {
     id: 'link',
     tab: 'Paste link',
@@ -54,33 +45,20 @@ export const SOURCES: readonly Source[] = [
     button: 'Read listing',
     busyButton: 'Reading…',
     steps: LINK_STEPS,
-    real: true,
-  },
-  {
-    id: 'receipt',
-    tab: 'Order email',
-    placeholder: 'forward to closet@fitgrid.xyz',
-    hint: 'Forward a confirmation and every item in the order is filed at once.',
-    idleCaption: ['Nothing forwarded', 'yet'],
-    busyCaption: 'Reading the order email',
-    credit: 'One email can add a whole order in a single pass.',
-    button: 'Look up',
-    busyButton: 'Matching…',
-    steps: CATALOGUE_STEPS,
-    real: false,
   },
   {
     id: 'image',
     tab: 'Drop an image',
     placeholder: 'drop a file, or paste an image URL',
-    hint: 'Found it on Pinterest or a lookbook? Drop the image and Fitgrid cuts the background out.',
-    idleCaption: ['Drop an image,', 'or paste its URL'],
+    hint:
+      'Found it on Pinterest or a lookbook? Drop the file anywhere on this screen, click ' +
+      'the frame to pick one, or paste its URL — the background comes off in your browser.',
+    idleCaption: ['Drop an image here,', 'or click to choose a file'],
     busyCaption: 'Removing background',
     credit: 'Background removed in your browser. Nothing was uploaded anywhere.',
     button: 'Cut out',
     busyButton: 'Cutting…',
     steps: CUTOUT_STEPS,
-    real: true,
   },
 ];
 

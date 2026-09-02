@@ -14,7 +14,7 @@ export function testItem(id: string, overrides: Partial<Item> = {}): Item {
     palette: ['#8a8a8a', '#d4d4d4', '#3a3a3a'],
     addedAt: '2026-02-01',
     wornCount: 0,
-    source: 'label',
+    source: 'image',
     ...overrides,
   };
 }

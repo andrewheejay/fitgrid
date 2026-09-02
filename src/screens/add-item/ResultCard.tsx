@@ -13,7 +13,7 @@ interface ResultCardProps {
   actions: ReactNode;
 }
 
-/** The success card, shared by the catalogue match and the cut-out. */
+/** The success card both ingest paths end on. */
 export function ResultCard({
   brand,
   name,

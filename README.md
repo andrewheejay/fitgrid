@@ -84,9 +84,10 @@ rail shows is where this design has broken before (a five-wide window applied to
 a four-item pool renders the same jacket twice). As a pure function it has
 boundary tests instead of a bug.
 
-## What is real and what is demonstrated
+## What is real
 
-The site is honest about this distinction, and so is the UI.
+Every screen does what it says. Where a limit exists it is stated on screen
+rather than papered over.
 
 **Real.** The wardrobe, the deck, saved fits, and persistence. The weather chip
 pulls live conditions from Open-Meteo. And both ingest paths that take an image
@@ -129,12 +130,13 @@ adds what needs Node: every hostname is resolved and every address it resolves
 to is re-checked, and redirects are followed by hand so no hop escapes the
 rules.
 
-**Demonstrated.** The two remaining catalogue paths (care label, order email)
-run the real four-step pipeline shape against a fixed example, and say so on
-screen. Reading a sewn-in label or parsing every retailer's order email needs
-commercial product data or a per-brand parser set; the handoff lists that as
-unproven, and inventing a fake one would have been the least interesting thing
-in the build.
+**Nothing here is demonstrated.** Both ways in do the work they claim. The
+handoff drew four: a care-label scan and an order-email parse alongside these
+two. Both of those needed commercial product data or a per-brand parser set, so
+both could only ever return one fixed example — and a tab that always answers
+the same thing is a screenshot with a button on it. They were built, labelled
+honestly as simulations, and then removed, which is the more useful answer to
+what the handoff asked for.
 
 ## Decisions taken against the handoff
 
@@ -154,6 +156,8 @@ Both changed, deliberately.
 | **The account chip became `reset@fitgrid`.** | `alex@fitgrid` is a fake account on a site with no accounts. The honest occupant of that slot is the one piece of state the visitor actually owns — what they have changed — so it resets the demo. |
 | **The fourth ingest step was renamed.** | The prototype's note column read "Gemini → Pinecone". There is no Gemini and no Pinecone here, and the status line should not claim otherwise. |
 | **"Paste link" was made real rather than simulated.** | It was drawn as a catalogue lookup, which needs product data this build does not have. But a product page already publishes most of those fields about itself in schema.org and OpenGraph markup, and the cut-out pipeline was already there to take the photo. Reading the page is a different claim from resolving a SKU, so the pipeline's four rows say what it actually does. |
+| **The care-label and order-email tabs were cut.** | Neither could be made real for the same reason "paste link" could: there is no catalogue behind them. Both ran the genuine four-step shape over one hard-coded garment. Four ways in, two of which always return the same hoodie, is a worse demonstration than two that work — and the same reasoning that removed the auth screen removes these. |
+| **Everything on item detail is editable in place.** | A shop's own copy is often not what you would file a garment under, and the layer is a keyword guess off the item's name. Double-click any field. Corrections are stored as patches keyed by item id rather than as edited copies, because the seed wardrobe ships inside the bundle and cannot be written to — which also keeps `reset@fitgrid` a single deletion. |
 
 Two states the handoff explicitly left undesigned — zero saved fits, and a
 category too sparse for the deck to build a fit — are implemented plainly rather

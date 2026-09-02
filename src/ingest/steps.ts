@@ -7,18 +7,6 @@ export interface PipelineStep {
 }
 
 /**
- * Catalogue lookup. Simulated: resolving a brand and SKU from a photograph of
- * a care label, or from a forwarded order email, needs commercial product data
- * or a per-brand parser set, which this build does not have.
- */
-export const CATALOGUE_STEPS: readonly PipelineStep[] = [
-  { label: 'Read source', note: 'label / receipt' },
-  { label: 'Catalogue lookup', note: 'brand + SKU match' },
-  { label: 'Pull studio image', note: 'official product shot' },
-  { label: 'File into wardrobe', note: 'tagged and dated' },
-];
-
-/**
  * The image drop. Every step here is real work in the browser.
  *
  * The prototype's fourth step read "Vision tagging + index — Gemini → Pinecone".
@@ -34,10 +22,10 @@ export const CUTOUT_STEPS: readonly PipelineStep[] = [
 ];
 
 /**
- * The pasted link. Real work, though not the work the catalogue paths pretend
- * to: nothing here resolves a SKU from a brand database. It reads the metadata
- * the page publishes about itself, takes the studio image that metadata points
- * at, and cuts it out in the browser like any other image.
+ * The pasted link. Real work, but not a catalogue lookup: nothing here
+ * resolves a SKU from a brand database. It reads the metadata the page
+ * publishes about itself, takes the studio image that metadata points at, and
+ * cuts it out in the browser like any other image.
  */
 export const LINK_STEPS: readonly PipelineStep[] = [
   { label: 'Read listing', note: 'opengraph + schema.org' },

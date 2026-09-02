@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import { useState, type DragEvent } from 'react';
+import { useRef } from 'react';
 import { Button } from '~/components/Button';
 import { Tab } from '~/components/Chip';
 import type { SpecRow } from '~/components/SpecTable';
@@ -9,10 +9,10 @@ import { hostname, READER_LABEL, type Listing } from '~/ingest/listing';
 import { SOURCES } from '~/ingest/sources';
 import { useWardrobe } from '~/store/wardrobeStore';
 import styles from './AddItemScreen.module.css';
-import { CATALOGUE_MATCH, catalogueItem } from './catalogueMatch';
 import { Pipeline } from './Pipeline';
 import { Field, Fields, ResultCard, Select } from './ResultCard';
 import { itemFromDraft, useAddItemFlow, type Draft } from './useAddItemFlow';
+import { useFileDrop } from './useFileDrop';
 
 
 /**
@@ -53,23 +53,22 @@ export function AddItemScreen() {
   const addItem = useWardrobe((state) => state.addItem);
   const navigate = useNavigate();
   const flow = useAddItemFlow();
-  const [dragging, setDragging] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
 
   const { source, phase, cutout, draft, listing } = flow;
 
-  const onDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragging(false);
-    const file = event.dataTransfer.files[0];
-    if (!file) return;
+  /*
+   * Dropping a file is itself the choice of path, so it switches tabs rather
+   * than refusing: someone holding a photograph over the link tab means the
+   * image drop, and making them click the right tab first before they are
+   * allowed to let go is a rule with no reason behind it.
+   */
+  const takeFile = (file: File) => {
     if (source.id !== 'image') flow.switchSource('image');
     flow.runImage(file);
   };
 
-  const addCatalogueItem = () => {
-    addItem(catalogueItem(crypto.randomUUID(), source.id));
-    navigate({ to: '/wardrobe' });
-  };
+  const drop = useFileDrop(takeFile);
 
   const addCutoutItem = () => {
     if (!cutout) return;
@@ -78,44 +77,72 @@ export function AddItemScreen() {
   };
 
   const busy = phase === 'running';
-  const succeeded = phase === 'catalogue' || phase === 'cutout';
+  const succeeded = phase === 'cutout';
 
-  return (
-    <main className={styles.layout}>
-      <div
-        className={styles.left}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-      >
+  const frameContent =
+    phase === 'cutout' && cutout ? (
+      <img className={styles.result} src={cutout.url} alt="The cut-out garment" />
+    ) : busy ? (
+      <p className={styles.frameText}>{source.busyCaption}</p>
+    ) : (
+      <>
         <div
-          className={`${styles.frame} ${succeeded ? styles.frameSolid : ''} ${
-            dragging ? styles.frameDrag : ''
-          }`}
-        >
-          {phase === 'cutout' && cutout ? (
-            <img className={styles.result} src={cutout.url} alt="The cut-out garment" />
-          ) : phase === 'catalogue' ? (
-            <div className={`${styles.glyph} ${styles.glyphImage}`} aria-hidden="true" />
-          ) : busy ? (
-            <p className={styles.frameText}>{source.busyCaption}</p>
+          className={`${styles.glyph} ${source.id === 'image' ? styles.glyphImage : ''}`}
+          aria-hidden="true"
+        />
+        <p className={styles.frameText}>
+          {drop.over ? (
+            'Release to cut it out'
           ) : (
             <>
-              <div
-                className={`${styles.glyph} ${source.id === 'image' ? styles.glyphImage : ''}`}
-                aria-hidden="true"
-              />
-              <p className={styles.frameText}>
-                {source.idleCaption[0]}
-                <br />
-                {source.idleCaption[1]}
-              </p>
+              {source.idleCaption[0]}
+              <br />
+              {source.idleCaption[1]}
             </>
           )}
-        </div>
+        </p>
+      </>
+    );
+
+  const frameClass = [styles.frame, succeeded ? styles.frameSolid : '', drop.over ? styles.frameDrag : '']
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    /*
+     * The whole screen is the drop target, not just the frame. A file aimed at
+     * a 320px square and released forty pixels wide of it used to be opened by
+     * the browser, and the page — with anything typed into it — was gone.
+     */
+    <main className={styles.layout} {...drop.handlers}>
+      <div className={styles.left}>
+        {source.id === 'image' ? (
+          <>
+            <button
+              type="button"
+              className={`${frameClass} ${styles.framePick}`}
+              onClick={() => picker.current?.click()}
+            >
+              {frameContent}
+            </button>
+            <input
+              ref={picker}
+              className={styles.picker}
+              type="file"
+              accept="image/*"
+              tabIndex={-1}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                // Cleared so that choosing the same file twice running still
+                // fires a change event and re-runs the pipeline.
+                event.target.value = '';
+                if (file) takeFile(file);
+              }}
+            />
+          </>
+        ) : (
+          <div className={frameClass}>{frameContent}</div>
+        )}
 
         <p className={styles.credit}>
           {succeeded
@@ -127,9 +154,9 @@ export function AddItemScreen() {
       <div className={styles.right}>
         <h1 className={styles.title}>Add an item</h1>
         <p className={styles.body}>
-          Scan a care label, paste a product link, or forward an order email and Fitgrid takes
-          the brand&rsquo;s own studio photo. No listing anywhere? Drop any image you found and
-          it gets cut out instead.
+          Paste a product link and Fitgrid reads the listing, then takes the shop&rsquo;s own
+          studio photo. Vintage, tailored or thrifted, with no listing anywhere? Drop any image
+          of it and the background comes off in your browser.
         </p>
 
         <div className={styles.tabs}>
@@ -159,18 +186,7 @@ export function AddItemScreen() {
           </Button>
         </div>
 
-        <p className={styles.hint}>
-          {source.hint}
-          {source.real ? null : (
-            <>
-              {' '}
-              <span className={styles.demoNote}>
-                This path is a demonstration — it returns a fixed example rather than querying a
-                real catalogue.
-              </span>
-            </>
-          )}
-        </p>
+        <p className={styles.hint}>{source.hint}</p>
 
         <Pipeline
           steps={flow.steps}
@@ -178,25 +194,6 @@ export function AddItemScreen() {
           {...(flow.runningNote !== undefined ? { runningNote: flow.runningNote } : {})}
           started={phase !== 'idle'}
         />
-
-        {phase === 'catalogue' ? (
-          <ResultCard
-            brand={CATALOGUE_MATCH.brand}
-            name={CATALOGUE_MATCH.name}
-            pill={CATALOGUE_MATCH.pill}
-            pillTone="match"
-            rows={[...CATALOGUE_MATCH.rows]}
-            tags={[...CATALOGUE_MATCH.tags]}
-            actions={
-              <>
-                <Button onClick={addCatalogueItem}>Add to wardrobe</Button>
-                <Button variant="invert" onClick={flow.showNoMatch}>
-                  Not my item
-                </Button>
-              </>
-            }
-          />
-        ) : null}
 
         {phase === 'cutout' && cutout ? (
           <ResultCard
@@ -293,9 +290,9 @@ export function AddItemScreen() {
 
         {phase === 'nomatch' ? (
           <div className={styles.error}>
-            <p className={styles.errorLabel}>
-              {source.id === 'link' ? 'Could not read that page' : 'No catalogue match'}
-            </p>
+            {/* Only the link path reaches this state now: it is the page that
+                could not be read, never a catalogue that had no answer. */}
+            <p className={styles.errorLabel}>Could not read that page</p>
             <p className={styles.errorBody}>
               {flow.error ??
                 'Vintage, tailored and thrifted pieces usually aren\u2019t listed anywhere.'}{' '}
