@@ -180,6 +180,12 @@ describe('stripSiteSuffix', () => {
     );
   });
 
+  it('drops a shop that names itself in another script', () => {
+    expect(
+      stripSiteSuffix('피그먼트 릴렉스드 크루 넥 티셔츠 | 무신사', 'https://www.musinsa.com/products/1', '무신사'),
+    ).toBe('피그먼트 릴렉스드 크루 넥 티셔츠');
+  });
+
   it('never returns an empty name', () => {
     expect(stripSiteSuffix('Pacsun', PAGE_URL)).toBe('Pacsun');
   });

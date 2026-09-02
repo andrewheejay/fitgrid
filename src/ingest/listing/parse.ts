@@ -302,7 +302,11 @@ export function stripSiteSuffix(title: string, pageUrl: string, siteName?: strin
 }
 
 function isSiteName(tail: string, pageUrl: string, siteName?: string): boolean {
-  const normalise = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  // Letters and numbers in any script. Stripping to a-z0-9 threw away the
+  // whole of a Korean shop's name — "무신사" normalised to nothing, which the
+  // empty guard below then read as "no site name here", so "| 무신사" survived
+  // on every Musinsa title.
+  const normalise = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
   // "END. (US)" is END. with a locale bolted on. The region marker is not part
   // of the name and would otherwise stop it matching the domain.
   const candidate = normalise(tail.replace(/\s*\([^)]*\)\s*$/, ''));
