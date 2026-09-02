@@ -1,7 +1,7 @@
 import type { Item } from '~/domain/items';
 
 /**
- * The wardrobe: 21 pieces — 8 top, 5 outer, 4 bottom, 4 shoes.
+ * The wardrobe: 21 pieces — 7 top, 6 outer, 4 bottom, 4 shoes.
  *
  * Real garments, added through the app's own cut-out path and baked into the
  * seed with scripts/bake-seed.mjs. Images live in public/garments.
@@ -23,25 +23,6 @@ export const SEED_ITEMS: readonly Item[] = [
     styleCode: 'HM31CS037-WHT-SM',
     retail: '$105',
     source: 'link',
-  },
-  {
-    id: 't2',
-    category: 'top',
-    name: 'Essentials classic fleece hoodie',
-    silhouette: 'boxy',
-    texture: 'cotton fleece',
-    aesthetic: 'casual',
-    tone: '#292429',
-    palette: ['#292429', '#19151b', '#221d23'],
-    addedAt: '2026-09-01',
-    wornCount: 0,
-    imageUrl: '/garments/t2.webp',
-    brand: 'Fear of God ESSENTIALS',
-    styleCode: '0192250500815861',
-    colourway: 'Jet Black',
-    composition: '80% cotton, 20% polyester',
-    retail: '$75.00',
-    source: 'image',
   },
   {
     id: 't3',
@@ -223,6 +204,35 @@ export const SEED_ITEMS: readonly Item[] = [
     styleCode: 'NJ3NR71A',
     retail: '$167',
     source: 'link',
+  },
+  {
+    /*
+     * A hoodie, filed under outerwear rather than tops — it is worn as the
+     * outer layer, and the deck can only reach it there.
+     *
+     * The id stays 't2' despite sitting among the o-numbered pieces. An id is
+     * a persistence key, not a description: browsers store edits, tombstones
+     * and saved fits against these, so renumbering one silently rewrites what
+     * every visitor already has. The layer is `category`; nothing reads it off
+     * the id.
+     */
+    id: 't2',
+    category: 'outer',
+    name: 'Essentials classic fleece hoodie',
+    silhouette: 'boxy',
+    texture: 'cotton fleece',
+    aesthetic: 'casual',
+    tone: '#292429',
+    palette: ['#292429', '#19151b', '#221d23'],
+    addedAt: '2026-09-01',
+    wornCount: 0,
+    imageUrl: '/garments/t2.webp',
+    brand: 'Fear of God ESSENTIALS',
+    styleCode: '0192250500815861',
+    colourway: 'Jet Black',
+    composition: '80% cotton, 20% polyester',
+    retail: '$75.00',
+    source: 'image',
   },
   {
     id: 'b1',

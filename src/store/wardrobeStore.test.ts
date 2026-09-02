@@ -108,10 +108,14 @@ describe('the wardrobe store', () => {
 
   it('restores the seeded wardrobe on reset, tombstones included', () => {
     const { repository, state } = setup();
-    const seeded = SEED_ITEMS.find((item) => item.id === 't2');
+    // Taken from the seed rather than named by hand: an id that no longer
+    // exists made every assertion below compare undefined to undefined.
+    const seeded = SEED_ITEMS[1];
+    if (!seeded) throw new Error('the seed ships more than one item');
+
     state().addItem(testItem('new'));
     state().removeItem('t1');
-    state().editItem('t2', { name: 'Corrected' });
+    state().editItem(seeded.id, { name: 'Corrected' });
     state().saveOutfit(FIT);
 
     state().reset();
@@ -120,7 +124,7 @@ describe('the wardrobe store', () => {
     expect(state().items.some((item) => item.id === 't1')).toBe(true);
     // Corrections are overlay state like any other, so the account chip that
     // resets the demo has to take them with it.
-    expect(state().items.find((item) => item.id === 't2')?.name).toBe(seeded?.name);
+    expect(state().items.find((item) => item.id === seeded.id)?.name).toBe(seeded.name);
     expect(repository.load().addedItems).toHaveLength(0);
     expect(repository.load().removedItemIds).toHaveLength(0);
     expect(repository.load().itemEdits).toEqual({});
