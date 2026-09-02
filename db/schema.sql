@@ -20,8 +20,14 @@ create table if not exists ingest_log (
   host      text        not null,
   outcome   text        not null,
   ms        integer     not null,
+  -- Why, when the outcome alone does not say. A paid call that failed is the
+  -- case that matters: without the provider's own message the leg is a black
+  -- box, and the only way to debug it is to spend another credit guessing.
+  detail    text,
   logged_at timestamptz not null default now()
 );
+
+alter table ingest_log add column if not exists detail text;
 
 -- Partial, because the only query over this table is "how many scraper calls
 -- today" and the day's rows are a small slice of the whole.

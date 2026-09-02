@@ -17,12 +17,12 @@ export interface CachedListing {
   fetchedAt: number;
 }
 
-export type Outcome = 'cache' | 'direct' | 'scraper' | 'unreadable' | 'refused';
+export type Outcome = 'cache' | 'direct' | 'scraper' | 'scraper-failed' | 'unreadable' | 'refused';
 
 export interface Store {
   cached: (url: string) => Promise<CachedListing | null>;
   save: (url: string, listing: Listing) => Promise<void>;
-  log: (host: string, outcome: Outcome, ms: number) => Promise<void>;
+  log: (host: string, outcome: Outcome, ms: number, detail?: string) => Promise<void>;
   /** Counts this request against the client's window and returns the result. */
   takeSlot: (client: string) => Promise<RateWindow>;
   scrapesToday: () => Promise<number>;
@@ -82,8 +82,10 @@ export function store(): Store | null {
       await sql.unsafe(SAVE_LISTING, [url, { ...listing } as Record<string, string | undefined>]);
     },
 
-    async log(host, outcome, ms) {
-      await sql.unsafe(LOG_INGEST, [host, outcome, ms]);
+    async log(host, outcome, ms, detail) {
+      // Truncated: a provider that answers with a whole HTML error page should
+      // not put it in the log a row at a time.
+      await sql.unsafe(LOG_INGEST, [host, outcome, ms, detail?.slice(0, 300) ?? null]);
     },
 
     async takeSlot(client) {

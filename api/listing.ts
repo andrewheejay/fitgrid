@@ -97,14 +97,15 @@ export async function GET(request: Request): Promise<Response> {
         await db.save(target, scraped);
         return done(scraped, 'scraper');
       }
-    } catch {
-      // Fall through: an unreadable page and a scraper having a bad minute
-      // reach the visitor as the same thing, and the log tells them apart.
+      // A page came back and cost a credit; it just had no product in it.
+      await db.log(host, 'scraper', Date.now() - started, 'no product in the page');
+    } catch (caught) {
+      // The provider refused, or the page never arrived. Not counted against
+      // the cap, because a request that fails is not one that was billed — and
+      // recorded with its reason, because a paid leg whose failures are
+      // swallowed can only be debugged by spending another credit guessing.
+      await db.log(host, 'scraper-failed', Date.now() - started, reason(caught));
     }
-    // The credit is spent whether or not a listing came back, and this row is
-    // what tomorrow's cap is counted from — so it is written on the way out,
-    // before the 404 below logs the outcome the visitor actually saw.
-    await db.log(host, 'scraper', Date.now() - started);
   }
 
   return done(null, 'unreadable', 404);
@@ -116,6 +117,10 @@ async function read(
   fetchHtml: (url: string) => Promise<string>,
 ): Promise<Listing | null> {
   return toListing(parseProductHtml(await fetchHtml(url), url), url, 'server');
+}
+
+function reason(caught: unknown): string {
+  return caught instanceof Error ? caught.message : String(caught);
 }
 
 async function text(url: string, timeoutMs: number): Promise<string> {

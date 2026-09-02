@@ -29,7 +29,7 @@ export const SAVE_LISTING = `
 `;
 
 export const LOG_INGEST = `
-  insert into ingest_log (host, outcome, ms) values ($1, $2, $3::integer)
+  insert into ingest_log (host, outcome, ms, detail) values ($1, $2, $3::integer, $4)
 `;
 
 /**
@@ -57,7 +57,13 @@ export const TAKE_SLOT = `
   returning count, started_at
 `;
 
-/** What the daily spend cap is counted from. */
+/**
+ * What the daily spend cap is counted from.
+ *
+ * Only `scraper` rows, which are the calls that came back with a page. A
+ * provider that refuses the request logs `scraper-failed` and is not counted,
+ * because a refused request is not a billed one.
+ */
 export const SCRAPES_TODAY = `
   select count(*) from ingest_log
   where outcome = 'scraper' and logged_at > now() - interval '1 day'

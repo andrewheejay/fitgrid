@@ -121,19 +121,29 @@ describe('the rate window', () => {
 
 describe('the ingest log', () => {
   it('counts only the scraper calls the cap is meant to ration', async () => {
-    await db.query(LOG_INGEST, ['nike.com', 'scraper', 812]);
-    await db.query(LOG_INGEST, ['nike.com', 'cache', 4]);
-    await db.query(LOG_INGEST, ['uniqlo.com', 'scraper', 1503]);
+    await db.query(LOG_INGEST, ['nike.com', 'scraper', 812, null]);
+    await db.query(LOG_INGEST, ['nike.com', 'cache', 4, null]);
+    await db.query(LOG_INGEST, ['uniqlo.com', 'scraper', 1503, null]);
+    // A refused request is not a billed one, so it must not eat the budget.
+    await db.query(LOG_INGEST, ['cos.com', 'scraper-failed', 300, 'scrapingbee 401: bad key']);
 
     const { rows } = await db.query<{ count: string }>(SCRAPES_TODAY);
     expect(Number(rows[0]?.count)).toBe(2);
   });
 
   it('ignores what was spent yesterday', async () => {
-    await db.query(LOG_INGEST, ['nike.com', 'scraper', 812]);
+    await db.query(LOG_INGEST, ['nike.com', 'scraper', 812, null]);
     await db.query(`update ingest_log set logged_at = now() - interval '2 days'`);
 
     const { rows } = await db.query<{ count: string }>(SCRAPES_TODAY);
     expect(Number(rows[0]?.count)).toBe(0);
+  });
+
+  it('keeps the reason a paid call failed', async () => {
+    await db.query(LOG_INGEST, ['cos.com', 'scraper-failed', 300, 'scrapingbee 401: bad key']);
+    const { rows } = await db.query<{ detail: string }>(
+      `select detail from ingest_log where outcome = 'scraper-failed'`,
+    );
+    expect(rows[0]?.detail).toBe('scrapingbee 401: bad key');
   });
 });

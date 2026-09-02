@@ -37,7 +37,13 @@ export function scraper(): Scraper | null {
       const response = await fetch(`https://app.scrapingbee.com/api/v1/?${query}`, {
         signal: AbortSignal.timeout(timeoutMs),
       });
-      if (!response.ok) throw new Error(`scraper returned ${response.status}`);
+      if (!response.ok) {
+        // The provider explains itself in the body — "premium proxy not
+        // available on your plan" reads very differently from a bare 401, and
+        // one of those is a config mistake while the other is a dead key.
+        const said = (await response.text()).slice(0, 200).replace(/\s+/g, ' ').trim();
+        throw new Error(`scrapingbee ${response.status}: ${said}`);
+      }
       // The proxy is relaying a page we do not control, so it gets the same
       // ceiling a direct fetch does.
       return new TextDecoder().decode(await bodyWithin(response));
