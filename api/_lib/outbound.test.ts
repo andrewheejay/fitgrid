@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodyWithin, Refused } from './outbound';
+import { bodyWithin, Refused } from './outbound.js';
 
 /** A response whose body arrives in chunks, as a real one does. */
 function streamed(chunks: number[], headers: Record<string, string> = {}): Response {

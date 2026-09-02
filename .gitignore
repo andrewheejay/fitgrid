@@ -2,5 +2,11 @@ node_modules
 dist
 .DS_Store
 *.local
-.env*.local
+
+# Secrets never reach the repo. .env.example is the documented shape and is
+# committed; everything else with a value in it is not.
 .env
+.env*.local
+
+# Written by `vercel link` / `vercel pull`: project ids and pulled env vars.
+.vercel

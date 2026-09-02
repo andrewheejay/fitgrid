@@ -1,7 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CACHED_LISTING, LOG_INGEST, SAVE_LISTING, SCRAPES_TODAY, TAKE_SLOT } from './sql';
+import { CACHED_LISTING, LOG_INGEST, SAVE_LISTING, SCRAPES_TODAY, TAKE_SLOT } from './sql.js';
 
 /**
  * The SQL, against a real Postgres.

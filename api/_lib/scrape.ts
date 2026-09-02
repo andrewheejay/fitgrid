@@ -1,5 +1,5 @@
-import { bodyWithin } from './outbound';
-import { DEFAULT_DAILY_SCRAPE_CAP } from './policy';
+import { bodyWithin } from './outbound.js';
+import { DEFAULT_DAILY_SCRAPE_CAP } from './policy.js';
 
 /**
  * The paid fallback, behind an interface that does not name the vendor.

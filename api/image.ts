@@ -1,8 +1,8 @@
-import { store } from './_lib/db';
-import { checkOutboundUrl } from './_lib/guard';
-import { clientKey, json } from './_lib/http';
-import { isOverLimit, retryAfterSeconds } from './_lib/policy';
-import { bodyWithin, Refused, safeFetch } from './_lib/outbound';
+import { store } from './_lib/db.js';
+import { checkOutboundUrl } from './_lib/guard.js';
+import { clientKey, json } from './_lib/http.js';
+import { isOverLimit, retryAfterSeconds } from './_lib/policy.js';
+import { bodyWithin, Refused, safeFetch } from './_lib/outbound.js';
 
 /**
  * Hand the browser a studio photo it is not allowed to fetch for itself.

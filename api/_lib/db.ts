@@ -1,7 +1,7 @@
 import postgres from 'postgres';
-import type { Listing } from '../../src/ingest/listing/parse';
-import { RATE_WINDOW_MS, type RateWindow } from './policy';
-import { CACHED_LISTING, LOG_INGEST, SAVE_LISTING, SCRAPES_TODAY, TAKE_SLOT } from './sql';
+import type { Listing } from '../../src/ingest/listing/parse.js';
+import { RATE_WINDOW_MS, type RateWindow } from './policy.js';
+import { CACHED_LISTING, LOG_INGEST, SAVE_LISTING, SCRAPES_TODAY, TAKE_SLOT } from './sql.js';
 
 /**
  * The three tables, behind five methods.

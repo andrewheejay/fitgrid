@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkOutboundUrl, isBlockedAddress, isIpLiteral } from './guard';
+import { checkOutboundUrl, isBlockedAddress, isIpLiteral } from './guard.js';
 
 describe('checkOutboundUrl', () => {
   it('allows an ordinary product page', () => {

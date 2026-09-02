@@ -1,10 +1,10 @@
-import { parseProductHtml, toListing, type Listing } from '../src/ingest/listing/parse';
-import { checkOutboundUrl } from './_lib/guard';
-import { store, type Outcome } from './_lib/db';
-import { clientKey, json } from './_lib/http';
-import { CACHE_TTL_MS, isFresh, isOverLimit, retryAfterSeconds } from './_lib/policy';
-import { bodyWithin, Refused, safeFetch } from './_lib/outbound';
-import { scraper } from './_lib/scrape';
+import { parseProductHtml, toListing, type Listing } from '../src/ingest/listing/parse.js';
+import { checkOutboundUrl } from './_lib/guard.js';
+import { store, type Outcome } from './_lib/db.js';
+import { clientKey, json } from './_lib/http.js';
+import { CACHE_TTL_MS, isFresh, isOverLimit, retryAfterSeconds } from './_lib/policy.js';
+import { bodyWithin, Refused, safeFetch } from './_lib/outbound.js';
+import { scraper } from './_lib/scrape.js';
 
 /**
  * Read a product page server-side.

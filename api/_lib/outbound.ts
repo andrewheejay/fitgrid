@@ -1,5 +1,5 @@
 import { lookup } from 'node:dns/promises';
-import { checkOutboundUrl, isBlockedAddress } from './guard';
+import { checkOutboundUrl, isBlockedAddress } from './guard.js';
 
 /**
  * The Node half of the outbound guard.

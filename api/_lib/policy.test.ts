@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isFresh, isOverLimit, retryAfterSeconds } from './policy';
+import { isFresh, isOverLimit, retryAfterSeconds } from './policy.js';
 
 const MINUTE = 60_000;
 
