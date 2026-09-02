@@ -13,18 +13,30 @@ import { WardrobeScreen } from './screens/wardrobe/WardrobeScreen';
 
 const rootRoute = createRootRoute({ component: App });
 
+/**
+ * The wardrobe is the site's front page, so it lives at the root rather than
+ * redirecting there from it. Landing on fitgrid.xyz should not bounce the
+ * visitor to a second URL before anything is drawn.
+ */
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  beforeLoad: () => {
-    throw redirect({ to: '/wardrobe' });
-  },
+  component: WardrobeScreen,
 });
 
+/**
+ * Where the wardrobe used to live. Kept as a redirect rather than deleted:
+ * this path has been linked and bookmarked, and a dead URL is a worse answer
+ * than a moved one. Item detail keeps the segment — `/wardrobe/t1` says what
+ * it is far better than a bare id at the root would, and a catch-all `/$itemId`
+ * could not be told apart from `/deck` or `/fits`.
+ */
 const wardrobeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/wardrobe',
-  component: WardrobeScreen,
+  beforeLoad: () => {
+    throw redirect({ to: '/' });
+  },
 });
 
 const itemDetailRoute = createRoute({

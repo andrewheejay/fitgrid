@@ -52,7 +52,7 @@ export function ItemDetailScreen() {
       <main className={styles.missing}>
         <p>That item is no longer in the wardrobe.</p>
         <p className={styles.missingBack}>
-          <Link to="/wardrobe">← Wardrobe</Link>
+          <Link to="/">← Wardrobe</Link>
         </p>
       </main>
     );
@@ -83,7 +83,7 @@ export function ItemDetailScreen() {
       </div>
 
       <div className={styles.right}>
-        <Link to="/wardrobe" className={styles.back}>
+        <Link to="/" className={styles.back}>
           ← Wardrobe
         </Link>
 
@@ -185,7 +185,7 @@ export function ItemDetailScreen() {
                 variant="danger"
                 onClick={() => {
                   removeItem(item.id);
-                  navigate({ to: '/wardrobe' });
+                  navigate({ to: '/' });
                 }}
               >
                 Remove it

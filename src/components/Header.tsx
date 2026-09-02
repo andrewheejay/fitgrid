@@ -3,7 +3,7 @@ import { useWeather } from '~/hooks/useWeather';
 import styles from './Header.module.css';
 
 const NAV = [
-  { label: 'Wardrobe', to: '/wardrobe' },
+  { label: 'Wardrobe', to: '/' },
   { label: 'Style', to: '/deck' },
   { label: 'Add', to: '/add' },
   { label: 'Fits', to: '/fits' },
@@ -62,7 +62,11 @@ export function Header({ onReset }: HeaderProps) {
   );
 }
 
-/** Item detail keeps Wardrobe marked active. */
+/**
+ * Item detail keeps Wardrobe marked active. Wardrobe is the root now, so the
+ * test cannot be a prefix match — every path starts with "/" — and item detail
+ * still sits under the old segment.
+ */
 function isActive(path: string, to: string): boolean {
-  return to === '/wardrobe' ? path.startsWith('/wardrobe') : path === to;
+  return to === '/' ? path === '/' || path.startsWith('/wardrobe') : path === to;
 }

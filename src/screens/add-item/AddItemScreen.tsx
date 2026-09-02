@@ -73,7 +73,7 @@ export function AddItemScreen() {
   const addCutoutItem = () => {
     if (!cutout) return;
     addItem(itemFromDraft(draft, cutout, crypto.randomUUID(), source.id));
-    navigate({ to: '/wardrobe' });
+    navigate({ to: '/' });
   };
 
   const busy = phase === 'running';
