@@ -11,7 +11,7 @@ you're sure about, and reroll everything around it until the rest works.
 Built from a design handoff: seven specified screens, a fixed token system, and
 two product changes to build rather than restyle.
 
-**Live:** <https://fitgrid.vercel.app>
+**Live:** <https://fitgrid.xyz>
 
 ## What was built, against the brief
 
