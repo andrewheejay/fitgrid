@@ -1,0 +1,17 @@
+<!--
+  Fitgrid mark — brand direction 1A "Ledger". A three-by-three ledger grid with
+  the centre cell filled: the wardrobe, and the one piece picked out of it.
+
+  Kept as the drawing and nothing else. As exported it carried 7.8kB of C2PA
+  provenance metadata around 413 bytes of artwork — a favicon is requested on
+  every cold load, so that was 95% of the file spent on a manifest no browser
+  reads.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="Fitgrid">
+  <rect width="32" height="32" fill="#f4f2ed"/>
+  <g stroke="#1a1a18" stroke-width="1.5" fill="none">
+    <rect x="4.75" y="4.75" width="22.5" height="22.5"/>
+    <path d="M12 4.75V27.25M20 4.75V27.25M4.75 12H27.25M4.75 20H27.25"/>
+  </g>
+  <rect x="12" y="12" width="8" height="8" fill="#1a1a18"/>
+</svg>

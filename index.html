@@ -8,6 +8,53 @@
       name="description"
       content="A catalogue of everything you own, and one fit a day out of it."
     />
+
+    <!--
+      The tab icon. SVG first, because it is the one that stays sharp on a
+      retina tab and in the bookmark list; the 32px PNG is there for the
+      browsers that still will not take an SVG, and apple-touch-icon for a
+      home-screen shortcut on iOS.
+    -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
+    <link rel="apple-touch-icon" href="/favicon-180.png" />
+    <!-- Mobile Safari tints its chrome with this. The site's own ground is
+         white, not the mark's paper, so this matches the page and not the
+         brand sheet — a warmer bar over a white header reads as a seam. -->
+    <meta name="theme-color" content="#ffffff" />
+
+    <!--
+      The link preview. Absolute URLs — a crawler has no page to resolve a
+      relative path against — and on www, because www is the primary domain in
+      Vercel and the bare host 308s to it. These three strings are the thing to
+      change if that is ever flipped round.
+    -->
+    <link rel="canonical" href="https://www.fitgrid.xyz/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Fitgrid" />
+    <meta property="og:url" content="https://www.fitgrid.xyz/" />
+    <meta property="og:title" content="Fitgrid" />
+    <meta
+      property="og:description"
+      content="A catalogue of everything you own, and one fit a day out of it."
+    />
+    <meta property="og:image" content="https://www.fitgrid.xyz/og-image-1200x630.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="The fitgrid wordmark on a pale ledger grid, with one cell filled solid, above the line: a catalogue of everything you own, and one fit a day out of it."
+    />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Fitgrid" />
+    <meta
+      name="twitter:description"
+      content="A catalogue of everything you own, and one fit a day out of it."
+    />
+    <meta name="twitter:image" content="https://www.fitgrid.xyz/og-image-1200x630.png" />
   </head>
   <body>
     <div id="root"></div>
