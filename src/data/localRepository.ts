@@ -15,9 +15,14 @@ export function createLocalRepository(): WardrobeRepository {
         const raw = window.localStorage.getItem(KEY);
         if (!raw) return emptyOverlay();
         const parsed = JSON.parse(raw) as Partial<Overlay>;
+        // Every field is defaulted rather than trusted: an overlay written by
+        // a build that predates hand edits has no `itemEdits`, and reading it
+        // back as `undefined` would fault on the first lookup.
         return {
           addedItems: parsed.addedItems ?? [],
           removedItemIds: parsed.removedItemIds ?? [],
+          itemEdits: parsed.itemEdits ?? {},
+          outfitNames: parsed.outfitNames ?? {},
           savedOutfits: parsed.savedOutfits ?? [],
         };
       } catch {

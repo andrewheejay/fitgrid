@@ -1,0 +1,87 @@
+/*
+ * The read and edit views must occupy the same box, or the table jumps when a
+ * row opens: same font, same padding, same width. Only the element changes.
+ */
+.read,
+.input {
+  display: inline-block;
+  max-width: 100%;
+  /*
+   * Padded out to the full height of a table row and pulled back by an equal
+   * negative margin, so nothing moves and the target is the row rather than
+   * the glyphs. A spec row is 38px tall and its text is 15px of that; without
+   * this, a double-click aimed at the line but landing in the whitespace under
+   * it does nothing, which reads as the gesture being broken rather than
+   * missed. Measured: a row holding an editable field and one holding plain
+   * text are both 38px.
+   */
+  padding: 11px 0;
+  margin: -11px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+
+.read {
+  cursor: text;
+  transition: background-color 120ms;
+}
+
+/*
+ * Hovering tints the whole hit area rather than underlining the text, which
+ * is the only honest way to draw a target that is taller than its content —
+ * an underline would land on the row's own separator and mark the wrong row.
+ */
+.read:hover {
+  background: var(--surface-sunken);
+}
+
+/* An unset optional field renders as an em dash: it says "not known", which is
+ * the truth, and it is a target you can double-click to fill in. */
+.blank {
+  color: var(--ink-faint);
+}
+
+/*
+ * The open field is marked by the accent focus ring in base.css and nothing
+ * else. That rule wins on ordering anyway, and a second indicator underneath
+ * it would only compete.
+ */
+.input::placeholder {
+  color: var(--ink-faint);
+}
+
+/*
+ * A field that owns its line fills it, so the whole width is a double-click
+ * target rather than just the glyphs. The inline variant — the layer chip in
+ * the subtitle, a fit's name beside its date — takes its width from its text
+ * instead, and its type from whatever it sits inside.
+ */
+.body,
+.title {
+  width: 100%;
+  font-family: var(--sans);
+}
+
+.body {
+  font-size: var(--t-body);
+}
+
+.title {
+  font-size: var(--t-detail-title);
+  font-weight: 500;
+  letter-spacing: var(--ls-tight);
+}
+
+/*
+ * A select carries its own chrome in every engine. Stripping the appearance
+ * keeps it the same document-like line as the text fields; the option list is
+ * the operating system's and is left alone.
+ */
+select.input {
+  appearance: none;
+  cursor: pointer;
+}

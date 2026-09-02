@@ -9,16 +9,18 @@ import {
   type Overlay,
 } from '~/data/overlay';
 import type { WardrobeRepository } from '~/data/repository';
-import type { Item, ItemId } from '~/domain/items';
-import type { Outfit } from '~/domain/outfits';
+import type { Item, ItemId, ItemPatch } from '~/domain/items';
+import type { Outfit, OutfitId } from '~/domain/outfits';
 
 interface WardrobeState {
   overlay: Overlay;
   items: Item[];
   outfits: Outfit[];
   addItem: (item: Item) => void;
+  editItem: (id: ItemId, patch: ItemPatch) => void;
   removeItem: (id: ItemId) => void;
   saveOutfit: (outfit: Outfit) => void;
+  renameOutfit: (id: OutfitId, name: string) => void;
   reset: () => void;
 }
 
@@ -46,11 +48,29 @@ export function createWardrobeStore(repository: WardrobeRepository) {
         commit({ ...overlay, addedItems: [item, ...overlay.addedItems] });
       },
 
-      removeItem: (id) => {
+      /*
+       * Patches accumulate per item rather than replacing: correcting the brand
+       * and then the silhouette leaves both corrected. The merge is shallow,
+       * which is all the patch shape needs — every field in it is a scalar
+       * except the palette, which is replaced whole.
+       */
+      editItem: (id, patch) => {
         const { overlay } = get();
         commit({
           ...overlay,
+          itemEdits: { ...overlay.itemEdits, [id]: { ...overlay.itemEdits[id], ...patch } },
+        });
+      },
+
+      removeItem: (id) => {
+        const { overlay } = get();
+        const { [id]: _dropped, ...itemEdits } = overlay.itemEdits;
+        commit({
+          ...overlay,
           addedItems: overlay.addedItems.filter((item) => item.id !== id),
+          // Corrections to something no longer in the wardrobe are dead weight
+          // in a store with a quota.
+          itemEdits,
           // A seed item cannot be deleted, only tombstoned.
           removedItemIds: overlay.removedItemIds.includes(id)
             ? overlay.removedItemIds
@@ -61,6 +81,11 @@ export function createWardrobeStore(repository: WardrobeRepository) {
       saveOutfit: (outfit) => {
         const { overlay } = get();
         commit({ ...overlay, savedOutfits: [outfit, ...overlay.savedOutfits] });
+      },
+
+      renameOutfit: (id, name) => {
+        const { overlay } = get();
+        commit({ ...overlay, outfitNames: { ...overlay.outfitNames, [id]: name } });
       },
 
       reset: () => {

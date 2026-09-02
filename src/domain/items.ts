@@ -8,7 +8,9 @@ export type ItemId = string;
  */
 export type Hex = `#${string}`;
 
-export type Aesthetic = 'workwear' | 'quiet' | 'casual' | 'utility' | 'sport';
+export const AESTHETICS = ['workwear', 'quiet', 'casual', 'utility', 'sport'] as const;
+
+export type Aesthetic = (typeof AESTHETICS)[number];
 
 /** How the item entered the wardrobe. Drives the credit line on item detail. */
 export type ItemSource = 'label' | 'link' | 'receipt' | 'image';
@@ -47,6 +49,42 @@ export interface Item {
   retail?: string;
 
   source: ItemSource;
+}
+
+/**
+ * A hand correction to one item, held apart from the item itself.
+ *
+ * The seed wardrobe ships inside the bundle and cannot be written to, so an
+ * edit is recorded as a patch keyed by id and merged back over the catalogue at
+ * read time. Added items take the same path — one merge rule rather than two —
+ * which also means `reset@fitgrid` restores every field by dropping the
+ * overlay, exactly as it already does for additions and removals.
+ *
+ * Only fields a person can reasonably know better than the pipeline are here.
+ * `id`, `addedAt`, `source` and `imageUrl` are provenance: what happened, not
+ * what the garment is.
+ */
+export interface ItemPatch {
+  name?: string;
+  category?: Category;
+  silhouette?: string;
+  texture?: string;
+  aesthetic?: Aesthetic;
+  brand?: string;
+  styleCode?: string;
+  colourway?: string;
+  composition?: string;
+  retail?: string;
+  wornCount?: number;
+  palette?: readonly [Hex, Hex, Hex];
+}
+
+export function applyItemPatch(item: Item, patch: ItemPatch | undefined): Item {
+  // The dominant tone drives the placeholder pattern and is only ever the first
+  // palette entry, so it follows the palette rather than being edited twice.
+  if (!patch) return item;
+  const patched = { ...item, ...patch };
+  return patch.palette ? { ...patched, tone: patch.palette[0] } : patched;
 }
 
 /** "boxy / cotton poplin / worn 12×" — the wardrobe cell's metadata line. */

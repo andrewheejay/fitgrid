@@ -57,6 +57,16 @@
   margin-top: 32px;
 }
 
+/* Sits under the table, in the same faint ink as the table's own keys: a note
+ * about the screen, not a row of it. */
+.hint {
+  font-family: var(--mono);
+  font-size: var(--t-meta);
+  letter-spacing: var(--ls-meta);
+  color: var(--ink-faint);
+  margin-top: 10px;
+}
+
 .palette {
   display: flex;
   gap: 6px;

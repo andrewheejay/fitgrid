@@ -26,28 +26,35 @@
 .cell {
   border-right: var(--hairline-light);
   border-bottom: var(--hairline-light);
-  border-top: none;
-  border-left: none;
   padding: 20px 18px 18px;
-  text-align: left;
   background: var(--surface);
   transition: background-color 120ms;
-  color: inherit;
-  width: 100%;
-  /*
-   * Same load-bearing flex column as the wardrobe cell. A fit that skipped its
-   * outer layer has three rows rather than four, and a button centres its
-   * contents by default — which drops that cell's stack out of line with its
-   * neighbours.
-   */
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
 }
 
 .cell:hover {
   background: var(--surface-sunken);
+}
+
+/*
+ * The half of the cell that opens the fit. Every default a button brings is
+ * stripped: it has to look like the surrounding document, and it has to lay
+ * out as a plain column — a fit that skipped its outer layer has three rows
+ * rather than four, and a button centres its contents, which would drop that
+ * cell's stack out of line with its neighbours.
+ */
+.open {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 .stack {
@@ -85,6 +92,10 @@
 .name {
   font-size: var(--t-garment);
   color: var(--ink);
+  /* The name is an editable field, so it takes whatever width is left after
+   * the date rather than being sized by the text it currently holds. */
+  min-width: 0;
+  flex: 1;
 }
 
 .date {

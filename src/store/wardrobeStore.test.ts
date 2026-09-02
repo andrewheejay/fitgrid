@@ -63,6 +63,40 @@ describe('the wardrobe store', () => {
     expect(repository.load().removedItemIds).toEqual(['t1']);
   });
 
+  it('corrects a seed item and persists the correction, not a copy of the item', () => {
+    const { repository, state } = setup();
+    state().editItem('t1', { name: 'Corrected' });
+
+    expect(state().items.find((item) => item.id === 't1')?.name).toBe('Corrected');
+    expect(repository.load().itemEdits['t1']).toEqual({ name: 'Corrected' });
+    expect(repository.load().addedItems).toHaveLength(0);
+  });
+
+  it('accumulates corrections to one item rather than replacing them', () => {
+    const { repository, state } = setup();
+    state().editItem('t1', { name: 'Corrected' });
+    state().editItem('t1', { brand: 'Elsewhere' });
+
+    expect(repository.load().itemEdits['t1']).toEqual({ name: 'Corrected', brand: 'Elsewhere' });
+  });
+
+  it('drops the corrections to an item that is removed, rather than storing them forever', () => {
+    const { repository, state } = setup();
+    state().editItem('t1', { name: 'Corrected' });
+    state().removeItem('t1');
+
+    expect(repository.load().itemEdits).toEqual({});
+  });
+
+  it('renames a fit without copying it into the overlay', () => {
+    const { repository, state } = setup();
+    state().saveOutfit(FIT);
+    state().renameOutfit('mine', 'Studio day');
+
+    expect(state().outfits[0]?.name).toBe('Studio day');
+    expect(repository.load().outfitNames).toEqual({ mine: 'Studio day' });
+  });
+
   it('hides a saved fit once one of its garments is removed', () => {
     const { state } = setup();
     state().saveOutfit(FIT);
@@ -74,15 +108,21 @@ describe('the wardrobe store', () => {
 
   it('restores the seeded wardrobe on reset, tombstones included', () => {
     const { repository, state } = setup();
+    const seeded = SEED_ITEMS.find((item) => item.id === 't2');
     state().addItem(testItem('new'));
     state().removeItem('t1');
+    state().editItem('t2', { name: 'Corrected' });
     state().saveOutfit(FIT);
 
     state().reset();
 
     expect(state().items).toHaveLength(SEED_ITEMS.length);
     expect(state().items.some((item) => item.id === 't1')).toBe(true);
+    // Corrections are overlay state like any other, so the account chip that
+    // resets the demo has to take them with it.
+    expect(state().items.find((item) => item.id === 't2')?.name).toBe(seeded?.name);
     expect(repository.load().addedItems).toHaveLength(0);
     expect(repository.load().removedItemIds).toHaveLength(0);
+    expect(repository.load().itemEdits).toEqual({});
   });
 });

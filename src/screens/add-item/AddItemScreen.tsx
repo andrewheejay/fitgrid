@@ -3,7 +3,7 @@ import { useState, type DragEvent } from 'react';
 import { Button } from '~/components/Button';
 import { Tab } from '~/components/Chip';
 import type { SpecRow } from '~/components/SpecTable';
-import type { Aesthetic } from '~/domain/items';
+import { AESTHETICS, type Aesthetic } from '~/domain/items';
 import { LAYERS, layerName, type Category } from '~/domain/layers';
 import { hostname, READER_LABEL, type Listing } from '~/ingest/listing';
 import { SOURCES } from '~/ingest/sources';
@@ -14,7 +14,6 @@ import { Pipeline } from './Pipeline';
 import { Field, Fields, ResultCard, Select } from './ResultCard';
 import { itemFromDraft, useAddItemFlow, type Draft } from './useAddItemFlow';
 
-const AESTHETICS: readonly Aesthetic[] = ['workwear', 'quiet', 'casual', 'utility', 'sport'];
 
 /**
  * What the run still could not tell you. It updates as the fields below are
