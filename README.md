@@ -176,9 +176,11 @@ than invented, and are the first thing to design properly.
 - **The phone header drops the city** from the weather chip to keep itself to
   two rows. The temperature and condition are the part you dress by, but it is
   a cut, not a reflow.
-- **`(width <= 720px)` is range syntax**, which the project's own stylelint
-  config requires. It needs Safari 16.4 or newer; below that every mobile rule
-  is ignored and the desktop layout is served to a phone.
+- **Touch is inferred from `(pointer: coarse)`**, not from width, so the tap
+  gestures follow the input device rather than the window. A tablet with a
+  keyboard case attached correctly loses them; a desktop browser resized to
+  390px keeps double-click and gets the phone layout, which is the intended
+  split but does mean the two axes can be exercised independently.
 - **A pasted image URL is best-effort.** An image served without permissive CORS
   headers cannot be read back off a canvas; dropping the file always works.
 - **Link ingest still covers only some shops.** The server closes most of the
