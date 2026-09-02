@@ -1,39 +1,39 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import styles from './Editable.module.css';
 
 /**
- * Text that becomes an input on double-click.
+ * Text you can correct in place by double-clicking it.
  *
- * The design is a document, not a form: fields are read far more often than
- * they are corrected, so the editing affordance stays out of the way until it
- * is wanted. Nothing shifts when it appears — the input inherits the type it
- * replaces and occupies the same box — because a detail screen that reflows
- * when you touch it reads as unstable.
+ * The element you edit is the element you were reading — made editable, not
+ * replaced. An <input> cannot do this: it is a single-line box, so a title
+ * that wraps over two lines collapses into one scrolling strip the moment you
+ * touch it, and the text moves out from under the cursor that was pointing at
+ * it. Editing here changes nothing you can see except the caret: same font,
+ * same wrapping, same position, down to the pixel.
  *
  * Enter and blur commit; Escape reverts. Both keys matter: the pointer path is
  * double-click and click away, and the keyboard path is Enter to open, Enter to
  * close, which is why the read view is focusable at all.
  */
 interface EditableProps {
-  /** The text put into the input. */
+  /** The text put into the field. */
   value: string;
-  /** What the read view shows, if that is not simply the value. */
-  display?: ReactNode;
+  /**
+   * What the read view shows, if that is not simply the value. A string rather
+   * than a node because `commit` has to be able to put it back by hand.
+   */
+  display?: string;
   onCommit: (next: string) => void;
   /** Names the field for screen readers, which cannot see the key column. */
   label: string;
-  placeholder?: string;
   /**
    * Whether clearing the field is a legal edit. False for the fields every
    * garment must have — there emptying is a slip, and reverting is kinder than
    * storing a blank name.
    */
   allowEmpty?: boolean;
-  /**
-   * `title` is the 26px item name, `body` everything in the spec table, and
-   * `inline` a field sitting inside a line of other text, which takes its type
-   * and its width from whatever surrounds it.
-   */
+  /** `title` is the 26px item name, `body` the spec table, `inline` a field
+   * sitting inside a line of other text. */
   variant?: Variant;
 }
 
@@ -42,73 +42,159 @@ type Variant = 'body' | 'title' | 'inline';
 /** `inline` deliberately adds no class: the base rule already inherits. */
 const variantClass = (variant: Variant) => (variant === 'inline' ? '' : styles[variant]);
 
+/** Stands in for a field the item has no value for, and is a target to fill. */
+const BLANK = '—';
+
 export function Editable({
   value,
   display,
   onCommit,
   label,
-  placeholder,
   allowEmpty = false,
   variant = 'body',
 }: EditableProps) {
-  const [draft, setDraft] = useState<string | null>(null);
-  // Escape unmounts the input, which fires blur on the way out. Without this
-  // the cancel would immediately be undone by the commit-on-blur below.
+  const ref = useRef<HTMLSpanElement>(null);
+  const [editing, setEditing] = useState(false);
+  // Where the double-click landed, so the caret can be put exactly there
+  // rather than at one end of the text. Null when opened from the keyboard.
+  const from = useRef<{ x: number; y: number } | null>(null);
+  // Escape unmounts nothing — the element stays — so the blur it causes would
+  // otherwise commit the very text Escape was pressed to discard.
   const cancelled = useRef(false);
 
-  const open = () => {
-    window.getSelection()?.removeAllRanges();
+  const open = (point: { x: number; y: number } | null) => {
+    from.current = point;
     cancelled.current = false;
-    setDraft(value);
+    setEditing(true);
   };
+
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!editing || !node) return;
+    node.focus();
+    placeCaret(node, from.current);
+  }, [editing]);
+
+  // What the element reads as when it is not being edited.
+  const readText = value ? (display ?? value) : BLANK;
 
   const commit = () => {
-    if (cancelled.current || draft === null) return;
-    const next = draft.trim();
-    setDraft(null);
-    if (next === value) return;
-    if (next || allowEmpty) onCommit(next);
-  };
+    const node = ref.current;
+    setEditing(false);
+    if (!node) return;
 
-  if (draft !== null) {
-    return (
-      <input
-        className={`${styles.input} ${variantClass(variant)}`}
-        aria-label={label}
-        value={draft}
-        placeholder={placeholder ?? ''}
-        autoFocus
-        onFocus={(event) => event.currentTarget.select()}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') event.currentTarget.blur();
-          if (event.key === 'Escape') {
-            cancelled.current = true;
-            setDraft(null);
-          }
-        }}
-      />
-    );
-  }
+    // Whitespace is never meaningful here, and a paste out of a shop's page
+    // routinely carries a newline or a run of spaces with it.
+    const typed = node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    const keep = !cancelled.current && (typed || allowEmpty) ? typed : value;
+
+    if (keep === value) {
+      /*
+       * Put the text back by hand. React will not do it: the child it rendered
+       * while editing and the child it renders now are the same string, so the
+       * diff is empty and it touches nothing — leaving whatever was typed on
+       * screen after an Escape, showing text that is not in the store.
+       */
+      node.textContent = readText;
+      return;
+    }
+    // A real edit changes `value`, so React does repaint this element, and
+    // repaints it from the store rather than from what is under the caret.
+    onCommit(keep);
+  };
 
   return (
     <span
-      className={`${styles.read} ${variantClass(variant)} ${value ? '' : styles.blank}`}
-      role="button"
+      ref={ref}
+      className={[
+        styles.field,
+        variantClass(variant),
+        editing ? styles.editing : '',
+        // Faint ink says "nothing here yet". Once the caret is in it, it is a
+        // field being typed into like any other.
+        !editing && !value ? styles.blank : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      contentEditable={editing ? 'plaintext-only' : false}
+      suppressContentEditableWarning
+      /* Brands, style codes and colourways are not dictionary words; every one
+         of them would carry a red underline through the middle of the page. */
+      spellCheck={false}
+      role={editing ? 'textbox' : 'button'}
+      aria-label={label}
       tabIndex={0}
-      title="Double-click to edit"
-      onDoubleClick={open}
+      {...(editing ? {} : { title: 'Double-click to edit' })}
+      onDoubleClick={(event) => open({ x: event.clientX, y: event.clientY })}
       onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === 'F2') {
+        if (!editing && (event.key === 'Enter' || event.key === 'F2')) {
           event.preventDefault();
-          open();
+          open(null);
+          return;
+        }
+        if (!editing) return;
+        if (event.key === 'Enter') {
+          // A name is one line. Enter finishes it rather than growing it.
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
+        if (event.key === 'Escape') {
+          cancelled.current = true;
+          event.currentTarget.blur();
         }
       }}
+      onPaste={(event) => {
+        /*
+         * plaintext-only already strips markup, but not line breaks, and these
+         * values are routinely pasted out of a product page. Inserting it by
+         * hand keeps the paste on one line and inside the undo stack.
+         */
+        event.preventDefault();
+        const text = event.clipboardData.getData('text/plain').replace(/\s+/g, ' ');
+        document.execCommand('insertText', false, text);
+      }}
+      onBlur={commit}
     >
-      {value ? (display ?? value) : '—'}
+      {editing ? value : readText}
     </span>
   );
+}
+
+/**
+ * Put the caret where the double-click was, the way a text editor does. Without
+ * this the browser leaves the word it selected on the second click highlighted,
+ * so the first keystroke silently replaces a word the visitor meant to correct
+ * one letter of.
+ */
+function placeCaret(node: HTMLElement, point: { x: number; y: number } | null) {
+  const selection = window.getSelection();
+  if (!selection) return;
+
+  const range = point && node.textContent ? caretRangeAt(point) : null;
+  const target = range ?? endOf(node);
+  selection.removeAllRanges();
+  selection.addRange(target);
+}
+
+function caretRangeAt({ x, y }: { x: number; y: number }): Range | null {
+  // Two spellings of one feature: caretRangeFromPoint is the older WebKit and
+  // Blink name, caretPositionFromPoint the standardised one Firefox ships.
+  if (typeof document.caretRangeFromPoint === 'function') {
+    return document.caretRangeFromPoint(x, y);
+  }
+  const position = document.caretPositionFromPoint?.(x, y);
+  if (!position) return null;
+  const range = document.createRange();
+  range.setStart(position.offsetNode, position.offset);
+  range.collapse(true);
+  return range;
+}
+
+function endOf(node: HTMLElement): Range {
+  const range = document.createRange();
+  range.selectNodeContents(node);
+  range.collapse(false);
+  return range;
 }
 
 interface EditableChoiceProps<T extends string> {
@@ -144,7 +230,7 @@ export function EditableChoice<T extends string>({
   if (editing) {
     return (
       <select
-        className={`${styles.input} ${variantClass(variant)}`}
+        className={`${styles.field} ${styles.select} ${variantClass(variant)}`}
         aria-label={label}
         value={value}
         /*
@@ -181,7 +267,7 @@ export function EditableChoice<T extends string>({
 
   return (
     <span
-      className={`${styles.read} ${variantClass(variant)}`}
+      className={`${styles.field} ${variantClass(variant)}`}
       role="button"
       tabIndex={0}
       title="Double-click to change"

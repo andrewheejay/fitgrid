@@ -67,7 +67,6 @@ export function ItemDetailScreen() {
         value={String(item[field] ?? '')}
         onCommit={(next) => edit({ [field]: next })}
         label={key}
-        placeholder={key.toLowerCase()}
         // The three fields every garment has are the three that cannot be
         // emptied; the catalogue ones can be cleared back to unknown.
         allowEmpty={field !== 'name' && field !== 'silhouette' && field !== 'texture'}

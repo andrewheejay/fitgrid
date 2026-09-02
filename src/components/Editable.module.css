@@ -1,9 +1,9 @@
 /*
- * The read and edit views must occupy the same box, or the table jumps when a
- * row opens: same font, same padding, same width. Only the element changes.
+ * There is one element and one set of rules for it, read or being edited.
+ * Nothing is swapped in and nothing is boxed: the whole point is that the text
+ * does not move, rewrap or change weight when you start typing in it.
  */
-.read,
-.input {
+.field {
   display: inline-block;
   max-width: 100%;
   /*
@@ -23,34 +23,40 @@
   letter-spacing: inherit;
   text-transform: inherit;
   color: inherit;
-}
-
-.read {
   cursor: text;
   transition: background-color 120ms;
+  /*
+   * An emptied field would otherwise collapse to nothing and take the row's
+   * height with it, so the line it occupies survives having no text in it.
+   */
+  min-height: 1lh;
 }
 
 /*
- * Hovering tints the whole hit area rather than underlining the text, which
- * is the only honest way to draw a target that is taller than its content —
- * an underline would land on the row's own separator and mark the wrong row.
+ * Hovering tints the hit area rather than underlining the text, which is the
+ * only honest way to draw a target taller than its content — an underline
+ * would land on the row's own separator and mark the wrong row.
  */
-.read:hover {
+.field:hover {
+  background: var(--surface-sunken);
+}
+
+/*
+ * While editing, the caret is the entire indicator, as it is in any text
+ * editor. The accent ring in base.css is right for the read state — it is a
+ * control you can tab to — but drawing it around live text would put back the
+ * box this component exists to avoid. Class plus pseudo-class outranks the
+ * bare :focus-visible there.
+ */
+.field.editing:focus,
+.field.editing:focus-visible {
+  outline: none;
   background: var(--surface-sunken);
 }
 
 /* An unset optional field renders as an em dash: it says "not known", which is
  * the truth, and it is a target you can double-click to fill in. */
 .blank {
-  color: var(--ink-faint);
-}
-
-/*
- * The open field is marked by the accent focus ring in base.css and nothing
- * else. That rule wins on ordering anyway, and a second indicator underneath
- * it would only compete.
- */
-.input::placeholder {
   color: var(--ink-faint);
 }
 
@@ -77,11 +83,16 @@
 }
 
 /*
- * A select carries its own chrome in every engine. Stripping the appearance
- * keeps it the same document-like line as the text fields; the option list is
- * the operating system's and is left alone.
+ * A select carries its own chrome in every engine. Stripping it keeps the
+ * field looking like the text it replaced for the instant before the list
+ * opens over it.
  */
-select.input {
+.select {
   appearance: none;
   cursor: pointer;
+}
+
+.select:focus,
+.select:focus-visible {
+  outline: none;
 }
