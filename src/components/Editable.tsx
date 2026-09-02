@@ -287,6 +287,10 @@ export function EditableChoice<T extends string>({
     <span
       className={`${styles.field} ${variantClass(variant)}`}
       role="button"
+      /* Named, as the text one is. Without this the read state is a button with
+       * no accessible name at all: the value is announced, but not what the
+       * value is of, and "Top" alone does not say it is the layer. */
+      aria-label={label}
       tabIndex={0}
       title={coarse ? 'Tap to change' : 'Double-click to change'}
       onClick={() => {

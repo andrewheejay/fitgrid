@@ -5,8 +5,8 @@
 .row {
   display: grid;
   grid-template-columns: var(--key-w, 110px) 1fr;
-  gap: 16px;
-  padding: 11px 0;
+  gap: var(--row-gap, 16px);
+  padding: var(--row-pad, 11px 0);
   border-bottom: var(--hairline-light);
   align-items: baseline;
 }
@@ -33,5 +33,19 @@
   .row {
     grid-template-columns: 84px 1fr;
     gap: 12px;
+  }
+}
+
+/*
+ * The row grows to meet the target rather than the target overflowing the row.
+ * Editable pads its hit area out to 44px under a finger and pulls it back with
+ * an equal negative margin, so in a 38px row the fields of adjacent rows
+ * overlap by 6px — and with one tap now opening a field, a tap near a boundary
+ * opens the neighbour. A 14px row padding makes both boxes exactly 44px, so
+ * every field's target is its own row and nothing else.
+ */
+@media (pointer: coarse) {
+  .row {
+    padding: 14px 0;
   }
 }

@@ -26,18 +26,19 @@ export function SpecTable({ rows, keyWidth = 110, gap = 16, padding = '11px 0' }
           key={row.key}
           className={styles.row}
           /*
-           * The key column travels as a custom property, not as
-           * grid-template-columns: an inline declaration outranks every
-           * stylesheet, and a 110px key column beside a phone's remaining
-           * ~250px wraps the composition line on every row. A property the
-           * media query can override is the only way to keep both.
+           * All three measurements travel as custom properties, not as the
+           * declarations themselves: an inline style outranks every stylesheet,
+           * so anything set literally here is unreachable from a media query.
+           * Each one has to move on a phone — the key column narrows, the gutter
+           * closes, and the row grows to hold a 44px touch target — so none of
+           * them can be written inline.
            */
           style={
             {
               '--key-w': `${keyWidth}px`,
-              gap,
-              padding,
-            } as CSSProperties & Record<'--key-w', string>
+              '--row-gap': `${gap}px`,
+              '--row-pad': padding,
+            } as CSSProperties & Record<'--key-w' | '--row-gap' | '--row-pad', string>
           }
         >
           <dt className={styles.key}>{row.key}</dt>

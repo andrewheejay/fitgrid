@@ -138,3 +138,12 @@
     max-width: none;
   }
 }
+
+/* Same clearance as item detail: the editable fit name reaches 14px above its
+ * text, which is further than the 12px that separated it from the stack — so a
+ * tap on the last garment in the fit landed on the rename field instead. */
+@media (pointer: coarse) {
+  .foot {
+    margin-top: 20px;
+  }
+}

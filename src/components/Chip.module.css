@@ -60,12 +60,17 @@
 
 /*
  * A chip is 21px tall and a tab 23px, which is fine under a cursor and well
- * under the 44px a thumb hits reliably. Only the vertical padding grows: the
- * drawn width of these is what keeps a row of filters readable as a row.
+ * under the 44px a thumb hits reliably. Only the vertical padding grows — the
+ * drawn width is what keeps a row of filters reading as a row — which is why
+ * these are two rules and not one: the two shapes have different horizontal
+ * padding, and a shared shorthand would quietly restyle the tabs as well.
  */
 @media (pointer: coarse) {
-  .chip,
-  .tab {
+  .chip {
     padding: 15px 10px;
+  }
+
+  .tab {
+    padding: 15px 11px;
   }
 }

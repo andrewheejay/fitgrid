@@ -73,10 +73,18 @@ button {
  * treating a tap as a tap, in case it was the first half of a double-tap zoom.
  */
 @media (pointer: coarse) {
+  /*
+   * !important, and it is load-bearing. A type selector loses to any class, and
+   * every field in this app is styled through one — `.input` on the add screen
+   * sets 11.5px, the result card's sets 12px — so without it this rule matches
+   * nothing it was written for and the zoom it exists to prevent still happens.
+   * The precedent is the reduced-motion block below: both are floors the design
+   * layer is not allowed to argue with, rather than defaults it can override.
+   */
   input,
   select,
   textarea {
-    font-size: 16px;
+    font-size: 16px !important;
   }
 
   button,

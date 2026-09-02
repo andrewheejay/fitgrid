@@ -182,6 +182,16 @@
   .hint {
     max-width: none;
   }
+
+  /*
+   * The "not enough to style" state is a screen of its own and was missed by
+   * the pass above: its 36px inset left it 40px narrower than every other
+   * screen on the same phone.
+   */
+  .blocked {
+    padding: 24px var(--gutter) 32px;
+    max-width: none;
+  }
 }
 
 /*

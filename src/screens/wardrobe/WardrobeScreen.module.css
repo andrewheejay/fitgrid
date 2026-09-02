@@ -151,6 +151,15 @@
     scrollbar-width: none;
   }
 
+  /*
+   * .rail dropped out of flex to give each scroller its own line, and took the
+   * flex gap with it. Without this the filter row and the sort row sit flush —
+   * two 44px bands of chips reading as one undifferentiated block.
+   */
+  .chips + .chips {
+    margin-top: 10px;
+  }
+
   .chips::-webkit-scrollbar {
     display: none;
   }

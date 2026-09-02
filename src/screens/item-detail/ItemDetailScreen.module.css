@@ -172,3 +172,14 @@
     max-width: none;
   }
 }
+
+/*
+ * The subtitle holds the layer picker, whose hit area reaches 14px above its
+ * own text. 8px of gap is less than that, so it claimed the bottom of the
+ * title; this is the clearance that keeps the two targets apart.
+ */
+@media (pointer: coarse) {
+  .subtitle {
+    margin-top: 22px;
+  }
+}

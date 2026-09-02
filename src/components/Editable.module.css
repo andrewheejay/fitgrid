@@ -80,6 +80,16 @@
   font-size: var(--t-detail-title);
   font-weight: 500;
   letter-spacing: var(--ls-tight);
+  /*
+   * The one field that opts out of the padded hit area, at every width. The
+   * padding exists to lift a 15px line to the height of the 38px row around
+   * it; a 26px heading is already taller than that, so all the padding did was
+   * push the title's target 11px down into the 8px gap above the subtitle and
+   * take the layer picker's top edge with it. Measured: double-clicking the
+   * bottom of the garment's name opened the layer list instead of the name.
+   */
+  padding: 0;
+  margin: 0;
 }
 
 /*
