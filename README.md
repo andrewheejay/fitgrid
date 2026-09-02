@@ -79,10 +79,13 @@ you can assert against. `hooks/useDeckKeyboard.ts` translates key presses into
 domain events and does nothing else; there is no product logic anywhere near the
 DOM.
 
-`domain/rail.ts` is small but earns its own file: the rule for which options a
-rail shows is where this design has broken before (a five-wide window applied to
-a four-item pool renders the same jacket twice). As a pure function it has
-boundary tests instead of a bug.
+`domain/rail.ts` used to hold the rule for which options a rail shows — a
+five-wide window that travelled with the selection, and the place this design
+has broken before, since a five-wide window over a four-item pool wraps and
+shows the same jacket twice. The rail now renders its pool whole and scrolls,
+which deletes the rule rather than testing it: there is no window to get wrong,
+and a category of eight no longer has three garments you can only cycle past
+blindly. What is left in that file is the wrapping step the arrow keys use.
 
 ## What is real
 

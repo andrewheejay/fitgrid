@@ -82,14 +82,36 @@
 }
 
 .strip {
+  --rail-gap: 8px;
+
   display: flex;
-  gap: 8px;
-  overflow: hidden;
+  gap: var(--rail-gap);
+  overflow: auto hidden;
   margin-top: 12px;
+  /*
+   * No scrollbar. The rail is driven by the arrow keys and by dragging; a grey
+   * track under every row would be the loudest thing on a screen whose whole
+   * structure is 1px hairlines. The counter in the head — "1 / 8" — is what
+   * says there is more, and cycling past the end wraps to the start.
+   */
+  scrollbar-width: none;
 }
 
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * Five across, exactly as drawn, whatever the pool holds.
+ *
+ * `flex-grow` handles the small pools: four bottoms total less than the strip
+ * is wide, so they expand to fill the row and nothing about that rail changes.
+ * Six or more overflow instead, growth never applies, and every option keeps
+ * the same width as the row above it — the rail scrolls rather than cramming
+ * eight garments into the space for five.
+ */
 .option {
-  flex: 1;
+  flex: 1 0 calc((100% - 4 * var(--rail-gap)) / 5);
   min-width: 0;
   padding: 6px;
   background: transparent;
