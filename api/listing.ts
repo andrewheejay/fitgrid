@@ -1,4 +1,9 @@
-import { parseProductHtml, toListing, type Listing } from '../src/ingest/listing/parse.js';
+import {
+  htmlTitle,
+  parseProductHtml,
+  toListing,
+  type Listing,
+} from '../src/ingest/listing/parse.js';
 import { checkOutboundUrl } from './_lib/guard.js';
 import { store, type Outcome } from './_lib/db.js';
 import { clientKey, json } from './_lib/http.js';
@@ -77,7 +82,11 @@ export async function GET(request: Request): Promise<Response> {
   if (hit && isFresh(hit.fetchedAt, Date.now())) return done(hit.listing, 'cache');
 
   try {
-    const direct = await read(target, (url) => text(url, DIRECT_TIMEOUT_MS));
+    const direct = toListing(
+      parseProductHtml(await text(target, DIRECT_TIMEOUT_MS), target),
+      target,
+      'server',
+    );
     if (direct) {
       await db.save(target, direct);
       return done(direct, 'direct');
@@ -92,13 +101,17 @@ export async function GET(request: Request): Promise<Response> {
   const paid = scraper();
   if (paid && (await db.scrapesToday()) < paid.dailyCap) {
     try {
-      const scraped = await read(target, (url) => paid.fetchHtml(url, SCRAPE_TIMEOUT_MS));
+      const html = await paid.fetchHtml(target, SCRAPE_TIMEOUT_MS);
+      const scraped = toListing(parseProductHtml(html, target), target, 'server');
       if (scraped) {
         await db.save(target, scraped);
         return done(scraped, 'scraper');
       }
-      // A page came back and cost a credit; it just had no product in it.
-      await db.log(host, 'scraper', Date.now() - started, 'no product in the page');
+      // A page came back and cost a credit; it just had no product in it. Its
+      // title is the cheapest way to tell "Attention Required!" — the shop
+      // beat the proxy — from a real product page this parser cannot read,
+      // which are two entirely different problems.
+      await db.log(host, 'scraper', Date.now() - started, `no product in: ${htmlTitle(html)}`);
     } catch (caught) {
       // The provider refused, or the page never arrived. Not counted against
       // the cap, because a request that fails is not one that was billed — and
@@ -109,14 +122,6 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   return done(null, 'unreadable', 404);
-}
-
-/** Fetch by whichever route, then apply the same parser to whatever came back. */
-async function read(
-  url: string,
-  fetchHtml: (url: string) => Promise<string>,
-): Promise<Listing | null> {
-  return toListing(parseProductHtml(await fetchHtml(url), url), url, 'server');
 }
 
 function reason(caught: unknown): string {

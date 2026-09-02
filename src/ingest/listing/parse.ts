@@ -264,7 +264,7 @@ function collectProducts(node: Json, out: JsonObject[]): void {
   if (record['@graph']) collectProducts(record['@graph'], out);
 }
 
-function htmlTitle(html: string): string | undefined {
+export function htmlTitle(html: string): string | undefined {
   const match = /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html);
   const title = match?.[1] ? decodeEntities(match[1]).replace(/\s+/g, ' ').trim() : '';
   return title || undefined;
