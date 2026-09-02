@@ -1,0 +1,10 @@
+# Everything here is public and worth indexing.
+User-agent: *
+Allow: /
+
+# The two serverless endpoints. Nothing a crawler can usefully fetch — both
+# answer POST and both take a URL to go and read, so a crawler following them
+# would only be spending this site's scraper budget on its own behalf.
+Disallow: /api/
+
+Sitemap: https://www.fitgrid.xyz/sitemap.xml
