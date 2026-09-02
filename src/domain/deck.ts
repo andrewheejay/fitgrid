@@ -41,6 +41,12 @@ export type DeckEvent =
   | { type: 'toggleLock'; layer?: Layer }
   /** R. Randomness is injected so that every shuffle is reproducible. */
   | { type: 'reshuffle'; random: () => number }
+  /**
+   * One layer, rerolled on its own — a tap on that row of the fit. Reshuffle
+   * moves everything unlocked at once, which is the wrong tool when three
+   * layers are right and the fourth is not.
+   */
+  | { type: 'rerollLayer'; layer: Layer; random: () => number }
   /** Enter. Means "save" in auto mode and "confirm this layer" in manual. */
   | { type: 'commit' }
   /** Clicking an option in a rail. */
@@ -145,6 +151,40 @@ export function reduce(
         if (size > 0) selection[layer] = Math.floor(event.random() * size) % size;
       }
       return [withFlash({ ...state, selection }, { kind: 'reshuffled' }), NO_EFFECTS];
+    }
+
+    case 'rerollLayer': {
+      // Same refusal as cycling a locked layer: the lock is the whole point of
+      // locking, and silence would read as the tap having missed.
+      if (state.locked[event.layer]) {
+        return [withFlash(state, { kind: 'alreadyLocked', layer: event.layer }), NO_EFFECTS];
+      }
+
+      const size = pools[event.layer].length;
+      // Nothing to roll to. Saying "rerolled" over an unchanged row would be a
+      // lie, so this does nothing and says nothing.
+      if (size < 2) return [state, NO_EFFECTS];
+
+      /*
+       * Deliberately not a free random index: landing on the garment already
+       * showing is the one outcome that reads as broken, and in a pool of four
+       * it happens a quarter of the time. Offsetting by 1..size-1 draws
+       * uniformly from every option *except* the current one.
+       */
+      const current = state.selection[event.layer];
+      const next = (current + 1 + Math.floor(event.random() * (size - 1))) % size;
+
+      return [
+        withFlash(
+          {
+            ...state,
+            activeLayer: indexOfLayer(event.layer),
+            selection: { ...state.selection, [event.layer]: next },
+          },
+          { kind: 'rerolled', layer: event.layer },
+        ),
+        NO_EFFECTS,
+      ];
     }
 
     case 'commit': {

@@ -122,6 +122,73 @@ describe('R reshuffles what is still open', () => {
   });
 });
 
+describe('rerolling one layer', () => {
+  it('moves only the layer named, and says which', () => {
+    const before = fresh();
+    const { state } = run(before, { type: 'rerollLayer', layer: 'bottom', random: () => 0 });
+    expect(state.selection.bottom).not.toBe(before.selection.bottom);
+    expect(state.selection.top).toBe(before.selection.top);
+    expect(state.selection.outer).toBe(before.selection.outer);
+    expect(state.selection.shoes).toBe(before.selection.shoes);
+    expect(state.flash).toEqual({ kind: 'rerolled', layer: 'bottom' });
+  });
+
+  /*
+   * The property that matters, over the whole range of the generator rather
+   * than at one convenient value: a reroll that lands back on the garment
+   * already showing looks like a tap that did nothing.
+   */
+  it('never lands on the garment already showing, at any point in the range', () => {
+    for (const layer of ['top', 'outer', 'bottom', 'shoes'] as const) {
+      for (let step = 0; step < 100; step += 1) {
+        const start = fresh();
+        const { state } = run(start, {
+          type: 'rerollLayer',
+          layer,
+          random: () => step / 100,
+        });
+        expect(state.selection[layer]).not.toBe(start.selection[layer]);
+        expect(state.selection[layer]).toBeGreaterThanOrEqual(0);
+        expect(state.selection[layer]).toBeLessThan(POOLS[layer].length);
+      }
+    }
+  });
+
+  it('reaches every other option in the pool, and only those', () => {
+    const start = fresh();
+    const seen = new Set<number>();
+    for (let step = 0; step < 100; step += 1) {
+      const { state } = run(start, {
+        type: 'rerollLayer',
+        layer: 'shoes',
+        random: () => step / 100,
+      });
+      seen.add(state.selection.shoes);
+    }
+    const others = POOLS.shoes.map((_, index) => index).filter((i) => i !== start.selection.shoes);
+    expect([...seen].sort()).toEqual(others);
+  });
+
+  it('refuses a locked layer and leaves the selection alone', () => {
+    const locked = run(fresh(), { type: 'toggleLock', layer: 'top' }).state;
+    const { state } = run(locked, { type: 'rerollLayer', layer: 'top', random: () => 0.5 });
+    expect(state.selection.top).toBe(locked.selection.top);
+    expect(state.flash).toEqual({ kind: 'alreadyLocked', layer: 'top' });
+  });
+
+  it('stays silent on a pool too small to have anywhere to go', () => {
+    const single: DeckPools = { ...POOLS, shoes: ['s1'] };
+    const start = initialDeckState();
+    const [state] = reduce(
+      { ...start, selection: { ...start.selection, shoes: 0 } },
+      { type: 'rerollLayer', layer: 'shoes', random: () => 0.9 },
+      single,
+    );
+    expect(state.selection.shoes).toBe(0);
+    expect(state.flash).toBeNull();
+  });
+});
+
 describe('enter', () => {
   it('saves in auto mode, returning the selection as an effect', () => {
     const { state, effects } = run(fresh(), { type: 'commit' });

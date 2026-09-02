@@ -47,6 +47,24 @@
   margin-top: 3px;
 }
 
+/*
+ * The tappable half of the row: image and text, everything but the lock. A
+ * button, so it sheds every default a button brings and lays out exactly as the
+ * two elements did when they were loose children of the row.
+ */
+.tap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+
 .pill {
   font-family: var(--mono);
   font-size: var(--t-micro);
@@ -54,6 +72,13 @@
   text-transform: uppercase;
   padding: 4px 8px;
   flex: none;
+}
+
+/* The same pill, as a control. .open and .locked already carry the border and
+ * the colour, so this only has to remove what a button adds. */
+.pillButton {
+  background: transparent;
+  transition: background-color 120ms, color 120ms;
 }
 
 .open {
@@ -72,4 +97,20 @@
   height: 60px;
   flex: none;
   border: 1px dashed var(--dashed);
+}
+
+/*
+ * The lock reaches 44px on a touch screen. It is the only unambiguous way to
+ * lock a layer — the row's double-tap is a convenience, and a screen reader's
+ * own double-tap means "activate", so it can never produce one.
+ */
+@media (pointer: coarse) {
+  .pillButton {
+    /* Height set outright rather than inferred from padding: the label is 9px
+     * mono, and padding that reads like it should reach 44 landed on 41.5. */
+    min-height: 44px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+  }
 }

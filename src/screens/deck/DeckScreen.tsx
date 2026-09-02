@@ -32,11 +32,12 @@ const MODE_HINTS: Record<DeckMode, string> = {
  */
 const TOUCH_MODE_HINTS: Record<DeckMode, string> = {
   auto:
-    'Auto: tap a garment to put it in the fit, and Lock to keep it. Reshuffle rerolls ' +
-    'everything still open, so a locked shirt survives every reroll.',
+    'Auto: tap a row of the fit to reroll just that piece, double-tap it to lock it, or use ' +
+    'the pill beside it. Reshuffle rerolls everything still open, so a locked shirt survives ' +
+    'every reroll.',
   manual:
-    'Layer by layer: tap through this layer, then Lock to settle it and drop to the next. ' +
-    'Locked layers stay put when you reshuffle.',
+    'Layer by layer: tap a row to reroll that piece and Lock to settle it, or pick from the ' +
+    'rails below. Locked layers stay put when you reshuffle.',
 };
 
 export function DeckScreen() {
@@ -118,7 +119,13 @@ export function DeckScreen() {
           </span>
         </div>
 
-        <FitStack state={state} selected={selected} itemsById={itemsById} />
+        <FitStack
+          state={state}
+          selected={selected}
+          itemsById={itemsById}
+          onReroll={(layer) => dispatch({ type: 'rerollLayer', layer, random: Math.random })}
+          onToggleLock={(layer) => dispatch({ type: 'toggleLock', layer })}
+        />
 
         <div className={styles.actions}>
           {/* The keycap in each label is a shortcut, not part of the name. */}
@@ -134,7 +141,7 @@ export function DeckScreen() {
         </div>
 
         <p className={styles.flash} role="status">
-          {state.flash ? flashMessage(state.flash) : ''}
+          {state.flash ? flashMessage(state.flash, coarse) : ''}
         </p>
 
         <p className={styles.hint}>

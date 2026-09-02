@@ -18,6 +18,26 @@ describe('flashMessage', () => {
     );
   });
 
+  it('names a way out that the visitor actually has', () => {
+    expect(flashMessage({ kind: 'alreadyLocked', layer: 'top' }, true)).toBe(
+      'TOP is locked — tap Locked to unlock',
+    );
+    // Every other message is the same on both, and must not drift apart.
+    for (const flash of [
+      { kind: 'locked', layer: 'top' },
+      { kind: 'unlocked', layer: 'top' },
+      { kind: 'rerolled', layer: 'top' },
+      { kind: 'reshuffled' },
+      { kind: 'saved' },
+    ] as const) {
+      expect(flashMessage(flash, true)).toBe(flashMessage(flash, false));
+    }
+  });
+
+  it('reports a single layer rerolled', () => {
+    expect(flashMessage({ kind: 'rerolled', layer: 'outer' })).toBe('OUTERWEAR rerolled');
+  });
+
   it('uses the outerwear display name, not the layer key', () => {
     expect(flashMessage({ kind: 'locked', layer: 'outer' })).toBe('OUTERWEAR locked');
   });
