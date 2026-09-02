@@ -42,8 +42,28 @@ describe('the schema', () => {
 });
 
 describe('the listing cache', () => {
+  /*
+   * Passed as an object, exactly as db.ts passes it.
+   *
+   * This assertion does not catch the bug that prompted it, and saying so is
+   * the point: postgres.js encodes a JS string bound to a jsonb parameter as a
+   * jsonb *string*, storing the whole listing as one quoted scalar. PGlite
+   * normalises both forms to an object, so no test here can tell them apart.
+   * What this holds is the shape the rest of the code depends on — if a change
+   * to the statement or the schema ever stores a scalar again, `->>'name'`
+   * going null fails here rather than on a cache hit in production.
+   */
+  it('stores an object, not a string that looks like one', async () => {
+    await db.query(SAVE_LISTING, [listing.url, listing]);
+    const { rows } = await db.query<{ kind: string; name: string | null }>(
+      `select jsonb_typeof(listing) as kind, listing->>'name' as name from listing_cache`,
+    );
+    expect(rows[0]?.kind).toBe('object');
+    expect(rows[0]?.name).toBe(listing.name);
+  });
+
   it('reads back what it stored, with a real timestamp', async () => {
-    await db.query(SAVE_LISTING, [listing.url, JSON.stringify(listing)]);
+    await db.query(SAVE_LISTING, [listing.url, listing]);
     const { rows } = await db.query<{ listing: typeof listing; fetched_at: Date }>(CACHED_LISTING, [
       listing.url,
     ]);
@@ -52,8 +72,8 @@ describe('the listing cache', () => {
   });
 
   it('replaces an entry rather than collecting duplicates of one url', async () => {
-    await db.query(SAVE_LISTING, [listing.url, JSON.stringify(listing)]);
-    await db.query(SAVE_LISTING, [listing.url, JSON.stringify({ ...listing, name: 'Renamed' })]);
+    await db.query(SAVE_LISTING, [listing.url, listing]);
+    await db.query(SAVE_LISTING, [listing.url, { ...listing, name: 'Renamed' }]);
 
     const { rows } = await db.query<{ listing: typeof listing }>(CACHED_LISTING, [listing.url]);
     expect(rows).toHaveLength(1);

@@ -9,8 +9,12 @@
  *
  * Placeholders are $n and the values are passed separately; nothing is
  * interpolated into these strings. They carry explicit casts because a driver
- * is free to send a parameter as text and let the server sort it out, and a
- * text parameter landing in a jsonb column is an error rather than a coercion.
+ * is free to send a parameter untyped and let the server sort it out.
+ *
+ * The casts do not make every value safe on their own — a driver still decides
+ * how it encodes what it is given, and encoding a listing twice stores it as a
+ * jsonb string rather than an object. That is what `jsonb_typeof` is asserted
+ * on in the tests.
  */
 
 export const CACHED_LISTING = `

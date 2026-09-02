@@ -74,7 +74,12 @@ export function store(): Store | null {
     },
 
     async save(url, listing) {
-      await sql.unsafe(SAVE_LISTING, [url, JSON.stringify(listing)]);
+      // The object, not JSON.stringify of it. postgres.js encodes a JS string
+      // bound to a jsonb parameter *as a jsonb string* — the whole listing
+      // stored as one quoted scalar, where `listing->>'name'` is null and a
+      // cache hit hands the client a string it parses into nothing. Passing
+      // the object lets the driver serialise it once.
+      await sql.unsafe(SAVE_LISTING, [url, { ...listing } as Record<string, string | undefined>]);
     },
 
     async log(host, outcome, ms) {
