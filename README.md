@@ -28,7 +28,8 @@ two product changes to build rather than restyle.
 Not attempted: user registration and login. There are no accounts in this
 build, deliberately, and the reasoning is in the decisions table below.
 
-**Mobile responsiveness** is the known gap; see *Known limits*.
+**Mobile**: one breakpoint at 720px, plus a set of `(pointer: coarse)` rules for
+the gestures a finger does not have. Verified at 360, 390 and 430.
 
 ## Running it
 
@@ -168,9 +169,16 @@ than invented, and are the first thing to design properly.
 
 ## Known limits
 
-- **Desktop-first**, verified at 1280–1600px, as the design was drawn. The
-  split-screen layouts have no stacking rule below ~900px and the deck's
-  keyboard model has no touch equivalent.
+- **Two widths, not a fluid range.** The layout is drawn for the desktop window
+  it was designed at (verified 1280–1600px) and redrawn under one 720px
+  breakpoint (verified 360/390/430). Between about 720 and 900 the two-column
+  screens are technically legal and visibly tight; nothing there was designed.
+- **The phone header drops the city** from the weather chip to keep itself to
+  two rows. The temperature and condition are the part you dress by, but it is
+  a cut, not a reflow.
+- **`(width <= 720px)` is range syntax**, which the project's own stylelint
+  config requires. It needs Safari 16.4 or newer; below that every mobile rule
+  is ignored and the desktop layout is served to a phone.
 - **A pasted image URL is best-effort.** An image served without permissive CORS
   headers cannot be read back off a canvas; dropping the file always works.
 - **Link ingest still covers only some shops.** The server closes most of the

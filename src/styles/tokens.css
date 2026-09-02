@@ -78,3 +78,26 @@
   --panel-pad: 40px;
   --header-h: 52px;
 }
+
+/*
+ * The phone. One breakpoint carries the whole layout, and it moves three
+ * values rather than restating a second design: the gutters and panel padding
+ * come in, and the header grows a second row because four nav tabs cannot sit
+ * beside the wordmark in 390px.
+ *
+ * --header-h is the one value with reach beyond its own rule. Four screens
+ * size themselves with calc(100dvh - var(--header-h)), so this line silently
+ * moves all of them; that is the intent, but it is the first thing to check if
+ * a screen comes out short.
+ *
+ * 720 rather than a phone width: below it the two-column screens have no room
+ * left for a second column, which is what actually decides this, and it lands
+ * above every phone in landscape.
+ */
+@media (width <= 720px) {
+  :root {
+    --header-h: 96px; /* 52px bar + 44px nav row */
+    --gutter: 16px;
+    --panel-pad: 20px;
+  }
+}

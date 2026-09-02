@@ -2,7 +2,21 @@
   border: 1px solid var(--swatch-edge);
   background-color: var(--surface);
   width: 100%;
+  height: var(--frame-h, auto);
   flex: none;
+}
+
+/*
+ * Two wardrobe cells to a row leaves each image about 160px wide, and a fixed
+ * 148px height in a narrower box wastes the difference as white space on both
+ * sides of the garment. A square takes the width it is given, so the cells stay
+ * flush with each other down the grid.
+ */
+@media (width <= 720px) {
+  .frame {
+    height: auto;
+    aspect-ratio: 1;
+  }
 }
 
 /*

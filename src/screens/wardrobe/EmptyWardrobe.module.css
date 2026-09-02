@@ -4,7 +4,9 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-  min-height: calc(100vh - var(--header-h));
+  /* dvh, not vh: mobile Safari resolves 100vh to the URL-bar-hidden height, so
+   * every one of these screens ran ~60px taller than the window it was in. */
+  min-height: calc(100dvh - var(--header-h));
   text-align: center;
   padding: 0 var(--gutter);
 }
@@ -37,4 +39,17 @@
   display: flex;
   gap: 8px;
   margin-top: 10px;
+}
+
+/*
+ * "Add your first piece" and "Import a sample wardrobe" total about 414px of
+ * text and padding side by side, so at 390 they overflowed the screen they are
+ * centred in. Stacked, and capped so they do not stretch into banners.
+ */
+@media (width <= 720px) {
+  .actions {
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+  }
 }

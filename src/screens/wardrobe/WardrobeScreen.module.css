@@ -96,3 +96,62 @@
   color: var(--ink-muted);
   margin-top: 5px;
 }
+
+/*
+ * Two to a row. auto-fill at minmax(196px, 1fr) needs 392px for a second
+ * column, so a 390px phone missed it by two pixels and drew 21 full-width
+ * cells — one garment per screen, and the catalogue stopped reading as a grid.
+ * An explicit two is the right count here rather than a smaller minimum: it is
+ * what the screen was drawn as.
+ */
+@media (width <= 720px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cell {
+    padding: 14px 12px 12px;
+  }
+
+  /*
+   * Name and category share a baseline row at desktop width. In a 195px cell
+   * the category takes a third of it and crushes the name to two words, so
+   * they stack — category first, as the smaller, fainter label of the two.
+   */
+  .cellHead {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 3px;
+    margin-top: 11px;
+  }
+
+  .name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.35;
+  }
+
+  /*
+   * Filters and sort each scroll on their own line. Wrapped, the two groups run
+   * into each other and the row's height changes as the counts do. The padding
+   * belongs to the scroller, not its parent, so the chips bleed to the screen
+   * edge and the last one is visibly cut rather than looking like the end.
+   */
+  .rail {
+    display: block;
+    padding: 0 0 10px;
+  }
+
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0 var(--gutter);
+    scrollbar-width: none;
+  }
+
+  .chips::-webkit-scrollbar {
+    display: none;
+  }
+}

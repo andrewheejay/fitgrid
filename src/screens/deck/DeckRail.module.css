@@ -152,3 +152,15 @@
   font-size: var(--t-micro);
   color: var(--ink-faint);
 }
+
+/*
+ * Three across instead of five. Five options in 358px is 63px each — smaller
+ * than the 44px target plus its own borders, and too small to tell two black
+ * hoodies apart. The strip already scrolls, so a wider option costs nothing
+ * but a shorter first look at the pool.
+ */
+@media (width <= 720px) {
+  .option {
+    flex: 1 0 calc((100% - 2 * var(--rail-gap)) / 3);
+  }
+}

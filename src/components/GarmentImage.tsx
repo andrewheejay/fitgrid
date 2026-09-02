@@ -16,11 +16,18 @@ interface GarmentImageProps {
  * with the item's dominant tone.
  */
 export function GarmentImage({ item, height, size }: GarmentImageProps) {
-  const style: CSSProperties & Record<'--tone', string> = {
+  /*
+   * The height travels as a custom property rather than as `height` itself.
+   * An inline style beats every stylesheet rule, so a literal height here would
+   * be unreachable from a media query — and the wardrobe's 148px cells have to
+   * become square at phone width. A property can be overridden; a declaration
+   * cannot. `size` stays literal: a 26px fit row is 26px on any screen.
+   */
+  const style: CSSProperties & Record<'--tone' | '--frame-h', string> = {
     // 22 is the hex alpha the handoff specifies for the stripe.
     '--tone': `${item.tone}22`,
+    '--frame-h': height === undefined ? 'auto' : `${height}px`,
     ...(size !== undefined ? { width: size, height: size } : {}),
-    ...(height !== undefined ? { height } : {}),
   };
 
   return (

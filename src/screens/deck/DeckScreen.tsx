@@ -6,6 +6,7 @@ import { lockedCount, selectedIds, type DeckEffect, type DeckMode } from '~/doma
 import { flashMessage } from '~/domain/flash';
 import { LAYERS, layerAt, layerName } from '~/domain/layers';
 import { outfitFromSelection, poolsFrom } from '~/domain/outfits';
+import { useCoarsePointer } from '~/hooks/useCoarsePointer';
 import { useDeckKeyboard } from '~/hooks/useDeckKeyboard';
 import { useItemsById, useWardrobe } from '~/store/wardrobeStore';
 import { DeckRail } from './DeckRail';
@@ -22,11 +23,28 @@ const MODE_HINTS: Record<DeckMode, string> = {
     'next. Locked layers stay put when you reshuffle.',
 };
 
+/*
+ * The same two hints for a screen with no keyboard attached. Every control the
+ * keyboard version names is already a button here — the rails select on tap,
+ * Lock is a pill, Save and Reshuffle are buttons — so this is a copy problem
+ * rather than a missing feature. Instructions naming keys that do not exist
+ * read as the screen being broken.
+ */
+const TOUCH_MODE_HINTS: Record<DeckMode, string> = {
+  auto:
+    'Auto: tap a garment to put it in the fit, and Lock to keep it. Reshuffle rerolls ' +
+    'everything still open, so a locked shirt survives every reroll.',
+  manual:
+    'Layer by layer: tap through this layer, then Lock to settle it and drop to the next. ' +
+    'Locked layers stay put when you reshuffle.',
+};
+
 export function DeckScreen() {
   const items = useWardrobe((state) => state.items);
   const saveOutfit = useWardrobe((state) => state.saveOutfit);
   const navigate = useNavigate();
   const { lock } = useSearch({ from: '/deck' });
+  const coarse = useCoarsePointer();
 
   const pools = useMemo(() => poolsFrom(items), [items]);
   const itemsById = useItemsById();
@@ -103,12 +121,15 @@ export function DeckScreen() {
         <FitStack state={state} selected={selected} itemsById={itemsById} />
 
         <div className={styles.actions}>
-          <Button onClick={() => dispatch({ type: 'commit' })}>Save fit ⏎</Button>
+          {/* The keycap in each label is a shortcut, not part of the name. */}
+          <Button onClick={() => dispatch({ type: 'commit' })}>
+            {coarse ? 'Save fit' : 'Save fit ⏎'}
+          </Button>
           <Button
             variant="secondary"
             onClick={() => dispatch({ type: 'reshuffle', random: Math.random })}
           >
-            Reshuffle unlocked R
+            {coarse ? 'Reshuffle unlocked' : 'Reshuffle unlocked R'}
           </Button>
         </div>
 
@@ -116,7 +137,9 @@ export function DeckScreen() {
           {state.flash ? flashMessage(state.flash) : ''}
         </p>
 
-        <p className={styles.hint}>{MODE_HINTS[state.mode]}</p>
+        <p className={styles.hint}>
+          {(coarse ? TOUCH_MODE_HINTS : MODE_HINTS)[state.mode]}
+        </p>
       </div>
 
       <div className={styles.right}>

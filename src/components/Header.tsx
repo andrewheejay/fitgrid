@@ -42,7 +42,7 @@ export function Header({ onReset }: HeaderProps) {
           <span className={styles.separator} aria-hidden="true">
             /
           </span>
-          <span>{weather.city}</span>
+          <span className={styles.city}>{weather.city}</span>
         </div>
 
         <button

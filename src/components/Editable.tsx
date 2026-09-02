@@ -1,8 +1,10 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { useCoarsePointer } from '~/hooks/useCoarsePointer';
 import styles from './Editable.module.css';
 
 /**
- * Text you can correct in place by double-clicking it.
+ * Text you can correct in place by double-clicking it — or, under a finger, by
+ * tapping it once.
  *
  * The element you edit is the element you were reading — made editable, not
  * replaced. An <input> cannot do this: it is a single-line box, so a title
@@ -14,6 +16,12 @@ import styles from './Editable.module.css';
  * Enter and blur commit; Escape reverts. Both keys matter: the pointer path is
  * double-click and click away, and the keyboard path is Enter to open, Enter to
  * close, which is why the read view is focusable at all.
+ *
+ * A touch screen has no third gesture to spend. Double-tap is the browser's own
+ * zoom, and a long press raises the selection handles, so on a coarse pointer a
+ * single tap opens the field. That gesture is not offered to a mouse: under a
+ * cursor, one click is how you place a caret in text you are only reading, and
+ * every stray click on the page would put a garment's name into edit.
  */
 interface EditableProps {
   /** The text put into the field. */
@@ -55,6 +63,7 @@ export function Editable({
 }: EditableProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const [editing, setEditing] = useState(false);
+  const coarse = useCoarsePointer();
   // Where the double-click landed, so the caret can be put exactly there
   // rather than at one end of the text. Null when opened from the keyboard.
   const from = useRef<{ x: number; y: number } | null>(null);
@@ -124,7 +133,15 @@ export function Editable({
       role={editing ? 'textbox' : 'button'}
       aria-label={label}
       tabIndex={0}
-      {...(editing ? {} : { title: 'Double-click to edit' })}
+      {...(editing ? {} : { title: coarse ? 'Tap to edit' : 'Double-click to edit' })}
+      onClick={(event) => {
+        /*
+         * Guarded on `editing` as well as on the pointer: once the field is
+         * open, a tap inside it is the visitor moving the caret, and reopening
+         * would throw away the position they just aimed at.
+         */
+        if (coarse && !editing) open({ x: event.clientX, y: event.clientY });
+      }}
       onDoubleClick={(event) => open({ x: event.clientX, y: event.clientY })}
       onKeyDown={(event) => {
         if (!editing && (event.key === 'Enter' || event.key === 'F2')) {
@@ -218,6 +235,7 @@ export function EditableChoice<T extends string>({
   variant = 'body',
 }: EditableChoiceProps<T>) {
   const [editing, setEditing] = useState(false);
+  const coarse = useCoarsePointer();
   // The ref callback below re-runs on any render while the list is open, and
   // reopening a list the visitor is already reading would close it under them.
   const opened = useRef(false);
@@ -270,7 +288,10 @@ export function EditableChoice<T extends string>({
       className={`${styles.field} ${variantClass(variant)}`}
       role="button"
       tabIndex={0}
-      title="Double-click to change"
+      title={coarse ? 'Tap to change' : 'Double-click to change'}
+      onClick={() => {
+        if (coarse) open();
+      }}
       onDoubleClick={() => open()}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === 'F2') {

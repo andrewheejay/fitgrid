@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '~/components/Button';
 import { Editable, EditableChoice } from '~/components/Editable';
 import { GarmentImage } from '~/components/GarmentImage';
+import { useCoarsePointer } from '~/hooks/useCoarsePointer';
 import { SpecTable, type SpecRow } from '~/components/SpecTable';
 import { formatShortDate } from '~/domain/date';
 import { AESTHETICS, type Aesthetic, type ItemPatch } from '~/domain/items';
@@ -42,6 +43,7 @@ const CATALOGUE: ReadonlyArray<{ key: string; field: TextField }> = [
 export function ItemDetailScreen() {
   const { itemId } = useParams({ from: '/wardrobe/$itemId' });
   const item = useItem(itemId);
+  const coarse = useCoarsePointer();
   const removeItem = useWardrobe((state) => state.removeItem);
   const editItem = useWardrobe((state) => state.editItem);
   const navigate = useNavigate();
@@ -157,7 +159,12 @@ export function ItemDetailScreen() {
               },
             ]}
           />
-          <p className={styles.hint}>Double-click any field to correct it.</p>
+          {/* The instruction has to name the gesture the visitor actually has;
+              a phone offers no double-click, and telling them to make one is
+              worse than saying nothing. */}
+          <p className={styles.hint}>
+            {coarse ? 'Tap' : 'Double-click'} any field to correct it.
+          </p>
         </div>
 
         <div className={styles.actions}>

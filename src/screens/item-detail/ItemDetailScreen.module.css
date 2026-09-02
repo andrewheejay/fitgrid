@@ -1,7 +1,9 @@
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
-  min-height: calc(100vh - var(--header-h));
+  /* dvh, not vh: mobile Safari resolves 100vh to the URL-bar-hidden height, so
+   * every one of these screens ran ~60px taller than the window it was in. */
+  min-height: calc(100dvh - var(--header-h));
 }
 
 .left {
@@ -120,4 +122,53 @@
 
 .missingBack {
   margin-top: 12px;
+}
+
+/*
+ * One column. minmax(360px, 0.85fr) on the right column is what pushed the
+ * page past the viewport and let the whole screen scroll sideways at 390.
+ * The image panel keeps its sunken ground and trades its right hairline for a
+ * bottom one, so the division between image and facts survives the stack.
+ */
+@media (width <= 720px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .left {
+    border-right: none;
+    border-bottom: var(--hairline);
+    padding: var(--panel-pad);
+  }
+
+  .image {
+    width: 100%;
+    max-width: 260px;
+  }
+
+  .right {
+    padding: 14px var(--gutter) 24px;
+  }
+
+  /* A 10px text link is a 14px target. Given the height of one. */
+  .back {
+    display: inline-flex;
+    align-items: center;
+    height: 44px;
+  }
+
+  .title {
+    margin-top: 6px;
+  }
+
+  /* "Lock into a fit" is the reason for the screen; it takes what is left
+   * after Remove rather than the two splitting the row evenly. */
+  .actions > :first-child {
+    flex: 1;
+  }
+
+  .confirm,
+  .confirmBody {
+    max-width: none;
+  }
 }

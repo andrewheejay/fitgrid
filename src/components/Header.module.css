@@ -105,3 +105,86 @@
   color: var(--ink);
   border-color: var(--ink);
 }
+
+/*
+ * Two rows. The wordmark, weather and account keep the 52px bar; the nav drops
+ * beneath them as four equal tabs across the full width, which is the only way
+ * four 10px uppercase labels stay legible and hittable at 390px.
+ */
+@media (width <= 720px) {
+  .header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 0;
+    gap: 0;
+  }
+
+  /*
+   * The nav is marked up inside .left, beside the wordmark. `order` and a full
+   * width can only move a box within its own flex line, so from in there the
+   * nav cannot reach a second row of the header — it just widened .left until
+   * .left and .right wrapped apart instead. `display: contents` dissolves the
+   * grouping box without touching the markup, and the wordmark and the nav
+   * become the header's own children, which is the line they have to wrap on.
+   */
+  .left {
+    display: contents;
+  }
+
+  .wordmark {
+    display: flex;
+    align-items: center;
+    height: 52px;
+    padding-left: var(--gutter);
+  }
+
+  /* The nav has left the group, so the account slot takes the space it had. */
+  .right {
+    height: 52px;
+    padding-right: var(--gutter);
+    margin-left: auto;
+  }
+
+  .nav {
+    order: 1;
+    width: 100%;
+    height: 44px;
+    /*
+     * Stretch, not the centre the desktop bar uses. Centred, each link stays
+     * 13px tall inside a 44px row: the row looks like a tab bar and only the
+     * lettering is tappable, which is the worst of both — a target that looks
+     * twice the size it is.
+     */
+    align-items: stretch;
+    /* Pulls the tabs' own baseline onto the header's hairline, so the active
+     * tab's underline sits on that rule rather than 1px above it. */
+    margin-bottom: -1px;
+  }
+
+  .navItem {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0;
+    padding: 0;
+  }
+
+  .account {
+    height: 44px;
+    padding: 0 10px;
+  }
+
+  /*
+   * The city goes, and only the city. Wordmark, weather and account together
+   * need about 400px, so at 360 and 390 the account slot wrapped to a line of
+   * its own and the header stood 148px tall — a third of the screen, sticky,
+   * before any wardrobe was drawn. The temperature and the condition are what
+   * the chip is for when you are deciding what to wear; the place you are
+   * standing in is the part a phone already knows.
+   */
+  .separator,
+  .city {
+    display: none;
+  }
+}

@@ -126,3 +126,20 @@
   font-family: var(--sans);
   font-size: var(--t-body);
 }
+
+@media (width <= 720px) {
+  .card {
+    padding: 14px;
+    max-width: none;
+  }
+
+  /* Two draft fields to a row leaves each about 160px, which is narrower than
+   * the values being corrected in them. */
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .actions > * {
+    flex: 1;
+  }
+}

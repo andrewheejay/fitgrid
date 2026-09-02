@@ -1,7 +1,9 @@
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  min-height: calc(100vh - var(--header-h));
+  /* dvh, not vh: mobile Safari resolves 100vh to the URL-bar-hidden height, so
+   * every one of these screens ran ~60px taller than the window it was in. */
+  min-height: calc(100dvh - var(--header-h));
 }
 
 /* Both columns need min-width: 0 or the source tabs overflow and the whole
@@ -181,4 +183,49 @@
   display: flex;
   gap: 8px;
   margin-top: 16px;
+}
+
+@media (width <= 720px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .left {
+    border-right: none;
+    border-bottom: var(--hairline);
+    padding: var(--panel-pad);
+  }
+
+  /* A fixed 320px square is wider than the padded column it sits in. Square by
+   * ratio instead, so it fills the width it is given and no more. */
+  .frame {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    aspect-ratio: 1;
+    padding: 24px;
+  }
+
+  .right {
+    padding: 20px var(--gutter) 24px;
+  }
+
+  /* Beside the button the URL field collapses to about 150px — too narrow to
+   * see the end of anything pasted into it. */
+  .entry {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .input {
+    border-right: var(--hairline);
+  }
+
+  /* Measures set in ch are narrower than the screen here, and a 46ch column
+   * inside a 358px one just makes a second, invisible margin. */
+  .body,
+  .hint,
+  .error {
+    max-width: none;
+  }
 }

@@ -123,3 +123,18 @@
   gap: 8px;
   margin-top: 18px;
 }
+
+/*
+ * The grid already falls to one column at this width — a fit is four garment
+ * names stacked, and half a phone is not enough to read them. Only the cell's
+ * own padding comes in.
+ */
+@media (width <= 720px) {
+  .cell {
+    padding: 16px var(--gutter);
+  }
+
+  .empty {
+    max-width: none;
+  }
+}

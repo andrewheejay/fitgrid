@@ -1,7 +1,9 @@
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(480px, 1.1fr);
-  min-height: calc(100vh - var(--header-h));
+  /* dvh, not vh: mobile Safari resolves 100vh to the URL-bar-hidden height, so
+   * every one of these screens ran ~60px taller than the window it was in. */
+  min-height: calc(100dvh - var(--header-h));
 }
 
 .left {
@@ -138,4 +140,58 @@
   line-height: var(--lh-body);
   color: var(--ink-muted);
   margin-top: 10px;
+}
+
+/*
+ * One column, chosen fit above the rails that build it. The desktop grid holds
+ * the right column at minmax(480px, …), which is wider than a phone, so this
+ * screen scrolled sideways as a whole — the one layout here that broke the
+ * viewport rather than merely crowding it.
+ */
+@media (width <= 720px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .left {
+    border-right: none;
+    border-bottom: var(--hairline);
+    padding: 20px var(--gutter) 24px;
+  }
+
+  .right {
+    padding: 20px var(--gutter) 32px;
+  }
+
+  /* Save and Reshuffle are 44px tall under a finger and will not sit side by
+   * side; each takes a whole line rather than half a word each. */
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .actions > * {
+    flex: 1 1 100%;
+  }
+
+  /* The layer label is a sentence, and the two mode tabs are the control. */
+  .topBar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .hint {
+    max-width: none;
+  }
+}
+
+/*
+ * The keycap legend is not a layout problem, it is a false one: there is no
+ * ⏎ or R to press on a phone, and every control it describes is already a
+ * button on this screen. Hidden by pointer rather than by width, because a
+ * narrow desktop window still has the keyboard the legend is about.
+ */
+@media (pointer: coarse) {
+  .keys {
+    display: none;
+  }
 }

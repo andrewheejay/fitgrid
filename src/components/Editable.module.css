@@ -96,3 +96,15 @@
 .select:focus-visible {
   outline: none;
 }
+
+/*
+ * Under a finger the row itself is the target, and 38px is below the 44px a
+ * thumb can reliably hit. The negative margin grows with the padding, so the
+ * field still occupies exactly the height of its text and no row moves.
+ */
+@media (pointer: coarse) {
+  .field {
+    padding: 14px 0;
+    margin: -14px 0;
+  }
+}

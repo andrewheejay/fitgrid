@@ -59,3 +59,29 @@ button {
     transition: none !important;
   }
 }
+
+/*
+ * Two things a touch screen needs that a mouse does not.
+ *
+ * Safari zooms the page in on any input whose text is under 16px and never
+ * zooms back out, so a visitor who taps the URL field on the add screen — 11.5px
+ * in this design — is left mid-flow on a page scrolled off its own centre. The
+ * floor applies to the focused field's text only; every label around it keeps
+ * the drawn size.
+ *
+ * `touch-action: manipulation` drops the 300ms wait a browser holds before
+ * treating a tap as a tap, in case it was the first half of a double-tap zoom.
+ */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  button,
+  a,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+}

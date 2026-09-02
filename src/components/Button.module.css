@@ -59,3 +59,14 @@
   padding: 11px 18px;
 }
 
+
+/* 30px and 34px respectively under a cursor; neither is a thumb target. */
+@media (pointer: coarse) {
+  .md {
+    padding: 16px;
+  }
+
+  .lg {
+    padding: 18px;
+  }
+}
