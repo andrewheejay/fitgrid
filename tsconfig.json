@@ -1,7 +1,31 @@
 {
+  /*
+   * A solution file: `tsc -b` builds the two real projects below, and this one
+   * compiles nothing itself.
+   *
+   * The compilerOptions are here for Vercel, which reads the root tsconfig to
+   * build the functions in api/ and does not follow project references. With
+   * only `files: []` and `references` it fell back to compiler defaults —
+   * module: CommonJS — and emitted `exports.GET = ...` into a package marked
+   * "type": "module", which Node refuses to load. Every request to a function
+   * answered FUNCTION_INVOCATION_FAILED before a line of ours ran.
+   *
+   * tsc ignores these, since this project has no files to apply them to.
+   */
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "strict": true
+  }
 }
