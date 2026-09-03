@@ -14,13 +14,13 @@ import {
  * Read a product page.
  *
  * Readers are tried in order and the first that yields both a name and an
- * image wins. Coverage is genuinely partial: a shop that refuses all five is a
+ * image wins. Coverage is genuinely partial: a shop that refuses all four is a
  * dead end here, which is what the no-match card is for.
  *
- * The chain is serial, so without a shared deadline the budgets add up — five
+ * The chain is serial, so without a shared deadline the budgets add up — four
  * readers having a bad afternoon would keep a visitor watching a disabled
- * button for over a minute. One deadline covers the whole run: a slow reader
- * can spend its own budget, never the rest of the chain's.
+ * button for the best part of a minute. One deadline covers the whole run: a
+ * slow reader can spend its own budget, never the rest of the chain's.
  */
 const CHAIN_BUDGET_MS = 40_000;
 
@@ -102,20 +102,23 @@ const READERS: readonly Reader[] = [
         url,
       ),
   },
-  {
-    id: 'allorigins',
-    timeoutMs: 10_000,
-    run: async (url, signal) =>
-      parseProductHtml(
-        await text(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, signal),
-        url,
-      ),
-  },
+  /*
+   * allorigins used to sit here, fourth. It is out of the chain because it is
+   * down: 500, then 522, then three connections that never answered inside
+   * twelve seconds. A reader that cannot answer is not free — it held its whole
+   * ten-second budget on every lookup that got that far, which was ten of the
+   * fourteen seconds a visitor spent waiting to be told a shop could not be
+   * read. Its id and label stay: listings cached before today still cite it.
+   */
   {
     id: 'microlink',
     // Last: it answers with a title and an image and nothing else, so a
     // listing it resolves arrives without brand, SKU or price.
-    timeoutMs: 15_000,
+    //
+    // Six seconds rather than fifteen. Every answer it has given, working or
+    // refusing, arrived inside three — the larger budget only ever bought a
+    // longer wait for the same refusal.
+    timeoutMs: 6_000,
     run: async (url, signal) =>
       parseMicrolink(
         JSON.parse(
