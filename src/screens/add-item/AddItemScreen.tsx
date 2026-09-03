@@ -70,6 +70,14 @@ export function AddItemScreen() {
 
   const drop = useFileDrop(takeFile);
 
+  /*
+   * Opening the picker is a separate verb from submitting, because on the
+   * image path they are two different things: the field takes a URL and the
+   * button takes a file. The frame is still clickable, but a dashed square is
+   * not a control anyone finds on a phone, where there is no drop either.
+   */
+  const pickFile = () => picker.current?.click();
+
   const addCutoutItem = () => {
     if (!cutout) return;
     addItem(itemFromDraft(draft, cutout, crypto.randomUUID(), source.id));
@@ -78,6 +86,18 @@ export function AddItemScreen() {
 
   const busy = phase === 'running';
   const succeeded = phase === 'cutout';
+
+  /*
+   * On the image path the entry button attaches a file until there is a URL in
+   * the field to run instead. It used to say "Cut out" over an empty field and
+   * do nothing when pressed — the only way to hand over a file was the dashed
+   * frame, and on a touch screen, where there is no drag and drop at all, that
+   * left the tab with no working way in.
+   *
+   * The label says which of the two it currently is rather than the button
+   * quietly changing meaning underneath it.
+   */
+  const attaches = source.id === 'image' && !busy && !succeeded && flow.value.trim() === '';
 
   const frameContent =
     phase === 'cutout' && cutout ? (
@@ -115,31 +135,31 @@ export function AddItemScreen() {
      * the browser, and the page — with anything typed into it — was gone.
      */
     <main className={styles.layout} {...drop.handlers}>
+      {/*
+        Mounted for both tabs, because the picker is now opened from the entry
+        row as well as from the frame, and a file arriving on the link tab
+        switches to the image tab rather than being refused.
+      */}
+      <input
+        ref={picker}
+        className={styles.picker}
+        type="file"
+        accept="image/*"
+        tabIndex={-1}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          // Cleared so that choosing the same file twice running still
+          // fires a change event and re-runs the pipeline.
+          event.target.value = '';
+          if (file) takeFile(file);
+        }}
+      />
+
       <div className={styles.left}>
         {source.id === 'image' ? (
-          <>
-            <button
-              type="button"
-              className={`${frameClass} ${styles.framePick}`}
-              onClick={() => picker.current?.click()}
-            >
-              {frameContent}
-            </button>
-            <input
-              ref={picker}
-              className={styles.picker}
-              type="file"
-              accept="image/*"
-              tabIndex={-1}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                // Cleared so that choosing the same file twice running still
-                // fires a change event and re-runs the pipeline.
-                event.target.value = '';
-                if (file) takeFile(file);
-              }}
-            />
-          </>
+          <button type="button" className={`${frameClass} ${styles.framePick}`} onClick={pickFile}>
+            {frameContent}
+          </button>
         ) : (
           <div className={frameClass}>{frameContent}</div>
         )}
@@ -181,8 +201,14 @@ export function AddItemScreen() {
             }}
             disabled={busy}
           />
-          <Button size="lg" onClick={flow.submit} disabled={busy}>
-            {busy ? source.busyButton : succeeded ? 'Add another' : source.button}
+          <Button size="lg" onClick={attaches ? pickFile : flow.submit} disabled={busy}>
+            {busy
+              ? source.busyButton
+              : succeeded
+                ? 'Add another'
+                : attaches
+                  ? 'Choose file'
+                  : source.button}
           </Button>
         </div>
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  declaredWidth,
   formatPrice,
   groupCode,
   imageCandidates,
@@ -10,6 +11,7 @@ import {
   parseMicrolink,
   parseProductHtml,
   stripSiteSuffix,
+  toListing,
 } from './parse';
 
 const PAGE_URL = 'https://www.pacsun.com/fear-of-god-essentials/jet-black-hoodie.html';
@@ -99,6 +101,82 @@ describe('parseProductHtml', () => {
       name: 'Wool Jumper',
       imageUrl: 'https://arket.com/j.jpg',
     });
+  });
+});
+
+describe('the product image', () => {
+  /** What every Shopify shop serves: one photograph, ascending widths. */
+  const shopify = `<html><head>
+    <script type="application/ld+json">
+    {"@type":"Product","name":"Wool Runner",
+     "image":["https://cdn.shop/a.png?v=1&width=100",
+              "https://cdn.shop/a.png?v=1&width=300",
+              "https://cdn.shop/a.png?v=1&width=1200"]}
+    </script></head></html>`;
+
+  it('takes the largest size a repeated photograph is offered at', () => {
+    expect(parseProductHtml(shopify, PAGE_URL).imageUrl).toBe(
+      'https://cdn.shop/a.png?v=1&width=1200',
+    );
+  });
+
+  it('keeps the first of a list of different, unmarked photographs', () => {
+    const html = `<html><head>
+      <script type="application/ld+json">
+      {"@type":"Product","name":"Wool Runner",
+       "image":["https://cdn.shop/front.png","https://cdn.shop/back.png"]}
+      </script></head></html>`;
+    expect(parseProductHtml(html, PAGE_URL).imageUrl).toBe('https://cdn.shop/front.png');
+  });
+
+  it('falls back to OpenGraph when the structured URL was never filled in', () => {
+    const html = `<html><head>
+      <meta property="og:image" content="https://cdn.ssense.com/real.jpg">
+      <script type="application/ld+json">
+      {"@type":"Product","name":"Zip Shirt",
+       "image":"https://res.cloudinary.com/x/upload/__IMAGE_PARAMS__/1.jpg"}
+      </script></head></html>`;
+    expect(parseProductHtml(html, PAGE_URL).imageUrl).toBe('https://cdn.ssense.com/real.jpg');
+  });
+});
+
+describe('declaredWidth', () => {
+  it('reads the width a query string names', () => {
+    expect(declaredWidth('https://cdn.shop/a.png?v=1759336475&width=1200')).toBe(1200);
+  });
+
+  it('reads a width from a sized path segment', () => {
+    expect(declaredWidth('https://cdn.shop/1000x1000/a.jpg')).toBe(1000);
+  });
+
+  it('does not mistake a cache-busting timestamp for a size', () => {
+    expect(declaredWidth('https://cdn.shop/a.png?w=1759336475')).toBe(0);
+  });
+
+  it('scores an unmarked URL zero', () => {
+    expect(declaredWidth('https://cdn.shop/a.png')).toBe(0);
+  });
+});
+
+describe('toListing', () => {
+  it('refuses a bot wall that answered with a vendor logo', () => {
+    expect(
+      toListing(
+        { name: 'E474972-000', imageUrl: 'https://www.akamai.com/images/logo/akamai-logo1.svg' },
+        'https://www.uniqlo.com/us/en/products/E474972-000',
+        'microlink',
+      ),
+    ).toBeNull();
+  });
+
+  it('keeps a listing whose photograph is a raster image', () => {
+    expect(
+      toListing(
+        { name: 'Wool Runner', imageUrl: 'https://cdn.shop/a.png?v=1' },
+        'https://cdn.shop/p/1',
+        'server',
+      ),
+    ).toMatchObject({ name: 'Wool Runner', via: 'server' });
   });
 });
 

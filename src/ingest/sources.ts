@@ -49,11 +49,13 @@ export const SOURCES: readonly Source[] = [
   {
     id: 'image',
     tab: 'Drop an image',
-    placeholder: 'drop a file, or paste an image URL',
+    placeholder: 'paste an image URL, or choose a file',
     hint:
-      'Found it on Pinterest or a lookbook? Drop the file anywhere on this screen, click ' +
-      'the frame to pick one, or paste its URL — the background comes off in your browser.',
-    idleCaption: ['Drop an image here,', 'or click to choose a file'],
+      'Found it on Pinterest or a lookbook? Choose a file, drop one anywhere on this ' +
+      'screen, or paste its URL — the background comes off in your browser.',
+    // Not "click": the frame is a tap target too, and on a phone it is the
+    // only one of the three routes the caption can honestly offer.
+    idleCaption: ['Drop an image here,', 'or choose a file'],
     busyCaption: 'Removing background',
     credit: 'Background removed in your browser. Nothing was uploaded anywhere.',
     button: 'Cut out',

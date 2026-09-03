@@ -88,6 +88,7 @@ export function normaliseUrl(input: string): string {
 
 export function toListing(fields: ListingFields, url: string, via: ReaderId): Listing | null {
   if (!fields.name || !fields.imageUrl || isErrorPage(fields.name)) return null;
+  if (isVectorImage(fields.imageUrl)) return null;
   return {
     url,
     name: fields.name,
@@ -128,7 +129,7 @@ export function parseProductHtml(html: string, pageUrl: string): ListingFields {
       meta.get('product:price:currency') ?? meta.get('og:price:currency'),
     );
 
-  const image = firstImage(product) ?? meta.get('og:image') ?? meta.get('twitter:image');
+  const image = bestImage(product) ?? meta.get('og:image') ?? meta.get('twitter:image');
 
   return fields({
     name: title ? stripSiteSuffix(title, pageUrl, siteName) : undefined,
@@ -190,6 +191,23 @@ const ERROR_PAGE = [
 export function isErrorPage(name: string): boolean {
   return ERROR_PAGE.some((pattern) => pattern.test(name.trim()));
 }
+/**
+ * A product photograph is never an SVG.
+ *
+ * This is the second half of the wall test, and it catches the walls the title
+ * does not. microlink read Uniqlo's Akamai interstitial and answered 200 with
+ * the SKU as the name — nothing `isErrorPage` recognises — and Akamai's own
+ * logo as the picture, so the visitor got a card claiming the listing had been
+ * read and a cut-out of a vendor logo. Shops publish photographs; the
+ * interstitials in front of them publish logos, and logos are vector.
+ *
+ * It costs nothing real either way: the segmenter needs pixels, and Safari
+ * will not give `createImageBitmap` a bitmap from an SVG blob at all.
+ */
+function isVectorImage(url: string): boolean {
+  return /\.svgz?(?:[?#]|$)/i.test(url);
+}
+
 /** The shop, as a person would name it. */
 export function hostname(url: string): string {
   try {
@@ -365,10 +383,54 @@ function firstOffer(product: JsonObject | undefined): JsonObject | undefined {
   return object(single?.['offers']) ?? object(asArray(single?.['offers'])[0]) ?? single;
 }
 
-function firstImage(product: JsonObject | undefined): string | undefined {
+/**
+ * The product photograph, at the largest size the page names for it.
+ *
+ * schema.org lets `image` be a list, and Shopify — which is most of the
+ * independent shops anyone actually pastes — publishes one photograph repeated
+ * at ascending widths with the thumbnail first. Taking element zero handed the
+ * segmenter a 100px square and filed a 100px cut-out in the wardrobe.
+ *
+ * The size is in the URL rather than in the JSON, so it is read from there. A
+ * URL that names no width scores zero and only wins if nothing else is marked,
+ * which leaves a list of genuinely different photographs on its first entry —
+ * the behaviour every page that is not doing the Shopify thing relies on.
+ */
+function bestImage(product: JsonObject | undefined): string | undefined {
   const image = product?.['image'];
-  const candidate = Array.isArray(image) ? image[0] : image;
-  return str(candidate) ?? str(object(candidate)?.['url']);
+  let best: string | undefined;
+  let widest = -1;
+
+  for (const candidate of Array.isArray(image) ? image : [image]) {
+    const url = str(candidate) ?? str(object(candidate)?.['url']);
+    if (!url || isTemplate(url)) continue;
+    const width = declaredWidth(url);
+    if (width > widest) {
+      best = url;
+      widest = width;
+    }
+  }
+  return best;
+}
+
+/** The pixel width a URL names, or 0 when it names none. */
+export function declaredWidth(url: string): number {
+  const query = /[?&](?:width|w|sw|size)=(\d{2,5})(?!\d)/i.exec(url);
+  if (query?.[1]) return Number(query[1]);
+  const path = /(?<!\d)(\d{2,5})x\d{2,5}(?!\d)/.exec(url);
+  return path?.[1] ? Number(path[1]) : 0;
+}
+
+/**
+ * A URL the page never finished writing.
+ *
+ * SSENSE ships `.../upload/__IMAGE_PARAMS__/262358M192030_1.jpg` in its
+ * structured data — the transform is filled in by its own client at render
+ * time, so what is in the HTML 404s. Treating it as no image at all is what
+ * lets the OpenGraph tag underneath it be used instead, which is a real URL.
+ */
+function isTemplate(url: string): boolean {
+  return /__[A-Z_]+__|\{\{?[a-z_]+\}?\}|%7B/i.test(url);
 }
 
 function brandName(brand: Json | undefined): string | undefined {
