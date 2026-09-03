@@ -15,7 +15,7 @@ export interface Weather {
  */
 const CITY = { name: 'Philadelphia', latitude: 39.9526, longitude: -75.1652 };
 
-const FALLBACK: Weather = { summary: '11°C overcast', city: CITY.name };
+const FALLBACK: Weather = { summary: '52°F overcast', city: CITY.name };
 
 /** WMO weather codes, collapsed to the vocabulary the chip has room for. */
 function describe(code: number): string {
@@ -38,7 +38,11 @@ export function useWeather(): Weather {
     const controller = new AbortController();
     const url =
       `https://api.open-meteo.com/v1/forecast?latitude=${CITY.latitude}` +
-      `&longitude=${CITY.longitude}&current=temperature_2m,weather_code`;
+      `&longitude=${CITY.longitude}&current=temperature_2m,weather_code` +
+      // Asked for in Fahrenheit rather than converted here: the city is in the
+      // United States, and a conversion is one more place for a rounding to go
+      // wrong for a number that is only ever read at a glance.
+      `&temperature_unit=fahrenheit`;
 
     fetch(url, { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
@@ -47,7 +51,7 @@ export function useWeather(): Weather {
         const code = data.current?.weather_code;
         if (temperature === undefined || code === undefined) return;
         setWeather({
-          summary: `${Math.round(temperature)}°C ${describe(code)}`,
+          summary: `${Math.round(temperature)}°F ${describe(code)}`,
           city: CITY.name,
         });
       })
